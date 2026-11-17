@@ -3,6 +3,7 @@ import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
+import { DoctorsModule } from './doctors/doctors.module.js';
 import { PatientsModule } from './patients/patients.module.js';
 import { PatientCasesModule } from './patient-cases/patient-cases.module.js';
 import { PaymentsModule } from './payments/payments.module.js';
@@ -20,6 +21,7 @@ import { PaymentsModule } from './payments/payments.module.js';
       autoLoadEntities: true,
       synchronize: true,
     }),
+    DoctorsModule,
     PatientsModule,
     PatientCasesModule,
     PaymentsModule,
