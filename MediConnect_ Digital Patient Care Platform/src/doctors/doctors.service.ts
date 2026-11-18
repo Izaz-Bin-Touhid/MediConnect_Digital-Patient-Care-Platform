@@ -1,4 +1,4 @@
-import { PatientCases } from '../patient-cases/entities/patient-cases.entity.js';
+import { PatientCases } from '../patient/entities/patient-cases.entity.js';
 import { randomUUID } from 'node:crypto';
 import { TestRequest } from './entities/test-request.entity.js';
 import { CreateTestRequestDto } from './dtos/create-test-request.dto.js';

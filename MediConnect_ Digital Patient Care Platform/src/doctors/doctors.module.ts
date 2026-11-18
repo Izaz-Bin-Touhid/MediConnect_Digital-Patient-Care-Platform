@@ -1,6 +1,6 @@
-import { PatientCases } from '../patient-cases/entities/patient-cases.entity.js';
+import { PatientCases } from '../patient/entities/patient-cases.entity.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
-import { JwtGuards } from '../common/guards/jwt-auth.guard.js';
+import { JwtGuards } from '../common/guards/jwtGuards.js';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 

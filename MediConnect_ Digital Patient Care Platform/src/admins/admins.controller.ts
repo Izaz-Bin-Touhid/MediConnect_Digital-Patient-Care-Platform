@@ -10,7 +10,7 @@ import type { Admins } from './entities/admins.entity.js';
 import { AdminsService } from './admins.service.js';
 import { VerifyDoctorDto } from './dtos/verify-doctor.dto.js';
 import { UpdateAdminDto } from './dtos/update-admin.dto.js';
-import { JwtGuards } from '../common/guards/jwt-auth.guard.js';
+import { JwtGuards } from '../common/guards/jwtGuards.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 

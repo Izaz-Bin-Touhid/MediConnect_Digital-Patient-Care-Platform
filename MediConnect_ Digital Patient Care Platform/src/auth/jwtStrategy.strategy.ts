@@ -1,36 +1,62 @@
+import { DoctorsService } from '../doctors/doctors.service.js';
 import { AdminsService } from '../admins/admins.service.js';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { DoctorsService } from '../doctors/doctors.service.js';
+import { PatientsService } from '../patient/patients.service.js';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
-    config: ConfigService,
+    private readonly patientsService: PatientsService,
     private readonly doctorsService: DoctorsService,
     private readonly adminsService: AdminsService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: config.getOrThrow<string>('JWT_SECRET'),
+      secretOrKey: process.env.JWT_SECRET || '',
       algorithms: ['HS256'],
     });
   }
 
-  async validate(payload: { sub?: number; role?: string }) {
-    if (!Number.isInteger(payload.sub) || !payload.sub || payload.sub < 1) {
+  async validate(payloads: any) {
+    if (!payloads || typeof payloads.role !== 'string') {
       throw new UnauthorizedException('Invalid token');
     }
 
-    if (payload.role === 'DOCTOR') {
-      const doctor = await this.doctorsService.getDoctorForToken(payload.sub);
-      if (doctor) return { ...doctor, role: 'DOCTOR' };
-    } else if (payload.role === 'ADMIN') {
-      const admin = await this.adminsService.getAdminForToken(payload.sub);
-      if (admin) return { ...admin, role: 'ADMIN' };
+    if (payloads.role === 'patient') {
+      if (typeof payloads.id !== 'string') {
+        throw new UnauthorizedException('Invalid token');
+      }
+
+      const patient = await this.patientsService.getPatientById(payloads.id);
+
+      if (!patient || patient.role !== 'patient') {
+        throw new UnauthorizedException('Patient account not found');
+      }
+
+      return {
+        id: patient.patientId,
+        email: patient.email,
+        role: patient.role,
+      };
+    }
+
+    if (!Number.isInteger(payloads.sub) || payloads.sub < 1) {
+      throw new UnauthorizedException('Invalid token');
+    }
+
+    if (payloads.role === 'DOCTOR') {
+      const doctor = await this.doctorsService.getDoctorForToken(payloads.sub);
+      if (doctor) {
+        return { ...doctor, role: 'DOCTOR' };
+      }
+    } else if (payloads.role === 'ADMIN') {
+      const admin = await this.adminsService.getAdminForToken(payloads.sub);
+      if (admin) {
+        return { ...admin, role: 'ADMIN' };
+      }
     }
 
     throw new UnauthorizedException('Invalid token or account no longer exists');

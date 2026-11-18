@@ -1,4 +1,4 @@
-import type { PatientCases } from '../../patient-cases/entities/patient-cases.entity.js';
+import type { PatientCases } from '../../patient/entities/patient-cases.entity.js';
 ﻿import {
   Column,
   CreateDateColumn,
