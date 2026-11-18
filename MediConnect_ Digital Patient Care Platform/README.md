@@ -102,6 +102,29 @@ The original `/coordinator` authentication URLs are supported as aliases.
 Diagnostic report submission stores the report reference supplied by the
 center. Reminder publishing is in-app.
 
+## Admin API
+
+Sign in with `POST /auth/login` and `role: "admin"`. Use the returned Bearer
+token for `GET /admins/me`, `PATCH /admins/me`, `PATCH /admins/me/password`
+and `POST /admins`. The first Admin must already exist in the shared
+`ADMIN` table. Admin profile fields in request and response bodies use
+`full_name`, `email` and `phone`.
+
+Use `GET /admins/doctor-profiles` to list profiles by verification status,
+and `PATCH /admins/doctor-profiles/:id/verification` to approve or reject a
+pending profile. Run the migrations before using these endpoints.
+
+Applicants submit `fullName` and `phone` to
+`POST /coordinator/applications`. Admins can then:
+
+- List pending applications with `GET /admins/coordinator-applications`.
+- Approve one with `POST /admins/coordinator-applications/:applicationId/approve`
+  and the assigned `email`, `password` and `staffId`. Give the credentials to
+  the coordinator, who can use `POST /auth/login` with `role: "coordinator"`.
+- List accounts with `GET /admins/coordinators`.
+- Assign a paid case with `PATCH /admins/cases/:caseId/coordinator` and
+  `coordinatorId`. The coordinator can then see it at `GET /coordinator/cases`.
+
 ## Run tests
 
 ```bash

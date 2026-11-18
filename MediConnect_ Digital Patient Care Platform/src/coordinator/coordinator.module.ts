@@ -37,5 +37,6 @@ import { Reminder } from './entities/reminder.entity.js';
   ],
   controllers: [CoordinatorApplicationController, CoordinatorController],
   providers: [CoordinatorService],
+  exports: [CoordinatorService],
 })
 export class CoordinatorModule {}

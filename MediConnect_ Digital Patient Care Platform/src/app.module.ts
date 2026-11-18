@@ -21,6 +21,7 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor.js';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor.js';
 import { TimingInterceptor } from './common/interceptors/timing.interceptor.js';
 import { RequestLoggerMiddleware } from './common/middleware/request-logger.middleware.js';
+import { AdminsModule } from './admins/admins.module.js';
 import { AuditModule } from './audit/audit.module.js';
 import { MailModule } from './mail/mail.module.js';
 
@@ -38,6 +39,7 @@ import { MailModule } from './mail/mail.module.js';
     PatientCasesModule,
     PaymentsModule,
     CoordinatorModule,
+    AdminsModule,
     AuditModule,
     MailModule,
   ],
