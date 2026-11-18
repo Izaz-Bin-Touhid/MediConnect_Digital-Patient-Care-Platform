@@ -1,8 +1,5 @@
-import {
-  Column,
-  Entity,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import type { PatientCases } from '../../patient-cases/entities/patient-cases.entity.js';
 
 @Entity('DOCTOR')
 export class Doctors {
@@ -34,4 +31,7 @@ export class Doctors {
     select: false,
   })
   password: string;
+
+  @OneToMany('PatientCases', (patientCase: PatientCases) => patientCase.doctor)
+  cases: PatientCases[];
 }

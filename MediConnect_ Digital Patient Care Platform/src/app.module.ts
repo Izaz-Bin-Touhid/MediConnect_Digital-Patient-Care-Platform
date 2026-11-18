@@ -7,6 +7,7 @@ import { DoctorsModule } from './doctors/doctors.module.js';
 import { PatientsModule } from './patients/patients.module.js';
 import { PatientCasesModule } from './patient-cases/patient-cases.module.js';
 import { PaymentsModule } from './payments/payments.module.js';
+import { AuthModule } from './auth/auth.module.js';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { PaymentsModule } from './payments/payments.module.js';
     PatientsModule,
     PatientCasesModule,
     PaymentsModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

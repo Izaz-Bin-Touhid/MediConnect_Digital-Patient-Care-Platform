@@ -7,6 +7,10 @@ import {
   OneToMany,
   PrimaryColumn,
 } from 'typeorm';
+import type { DoctorAdvice } from '../../doctors/entities/doctor-advice.entity.js';
+import type { TestRequests } from '../../doctors/entities/test-request.entity.js';
+import type { FollowupSchedules } from '../../followups/entities/followup-schedule.entity.js';
+import type { Doctors } from '../../doctors/entities/doctors.entity.js';
 import type { Patients } from '../../patients/entities/patients.entity.js';
 import type { Payments } from '../../payments/entities/payments.entity.js';
 
@@ -38,10 +42,16 @@ export class PatientCases {
 
   @Column({
     name: 'doctor_id',
-    type: 'varchar',
-    length: 10,
+    type: 'int',
   })
-  doctorId: string;
+  doctorId: number;
+
+  @ManyToOne('Doctors', (doctor: Doctors) => doctor.cases, {
+    nullable: false,
+    onDelete: 'RESTRICT',
+  })
+  @JoinColumn({ name: 'doctor_id' })
+  doctor: Doctors;
 
   @Column({
     name: 'coordinator_id',
@@ -103,4 +113,19 @@ export class PatientCases {
 
   @OneToMany('Payments', (payment: Payments) => payment.patientCase)
   payments: Payments[];
+
+  @OneToMany(
+    'TestRequests',
+    (testRequest: TestRequests) => testRequest.patientCase,
+  )
+  testRequests: TestRequests[];
+
+  @OneToMany('DoctorAdvice', (advice: DoctorAdvice) => advice.patientCase)
+  adviceRecords: DoctorAdvice[];
+
+  @OneToMany(
+    'FollowupSchedules',
+    (followup: FollowupSchedules) => followup.patientCase,
+  )
+  followupSchedules: FollowupSchedules[];
 }
