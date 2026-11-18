@@ -4,9 +4,10 @@ import {
   IsInt,
   IsNotEmpty,
   IsNumber,
-  IsOptional,
+  ValidateIf,
   IsString,
   MaxLength,
+  Max,
   Min,
 } from 'class-validator';
 
@@ -23,6 +24,7 @@ export class CreateDoctorProfileDto {
 
   @IsInt()
   @Min(0)
+  @Max(2147483647)
   experience_years: number;
 
   @IsString()
@@ -30,7 +32,7 @@ export class CreateDoctorProfileDto {
   @MaxLength(50)
   registration_no: string;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @IsArray()
   @ArrayMaxSize(10)
   @IsString({ each: true })
@@ -41,5 +43,6 @@ export class CreateDoctorProfileDto {
     maxDecimalPlaces: 2,
   })
   @Min(0)
+  @Max(99999999.99)
   consultation_fee: number;
 }

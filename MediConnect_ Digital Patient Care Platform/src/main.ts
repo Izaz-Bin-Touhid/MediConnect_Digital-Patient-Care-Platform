@@ -1,3 +1,4 @@
+import { DatabaseExceptionFilter } from './common/filters/database-exception.filter.js';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module.js';
 import { ValidationPipe } from '@nestjs/common';
@@ -9,7 +10,10 @@ import { ResponseInterceptor } from './common/interceptors/response.interceptor.
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const httpAdapterHost = app.get(HttpAdapterHost);
-  app.useGlobalFilters(new HttpExceptionFilter(httpAdapterHost));
+  app.useGlobalFilters(
+    new HttpExceptionFilter(httpAdapterHost),
+    new DatabaseExceptionFilter(httpAdapterHost),
+  );
   app.useGlobalInterceptors(new ResponseInterceptor());
   app.useGlobalPipes(
     new ValidationPipe({

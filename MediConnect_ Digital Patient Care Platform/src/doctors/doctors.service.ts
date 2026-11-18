@@ -14,7 +14,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, QueryFailedError, Repository } from 'typeorm';
+import { DataSource, In, QueryFailedError, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 
 import { Doctors } from './entities/doctors.entity.js';
@@ -27,6 +27,7 @@ import { UpdateDoctorProfileDto } from './dtos/update-doctor-profile.dto.js';
 @Injectable()
 export class DoctorsService {
   constructor(
+    private readonly dataSource: DataSource,
     @InjectRepository(Doctors)
     private readonly doctorRepo: Repository<Doctors>,
 
@@ -576,5 +577,62 @@ export class DoctorsService {
       select: { caseId: true },
     });
     return cases.map((patientCase) => patientCase.caseId);
+  }
+
+  async publishDoctorAdvice(id: number, doctorId: number) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+
+    try {
+      await queryRunner.startTransaction();
+
+      const advice = await queryRunner.manager.findOne(DoctorAdvice, {
+        where: { advice_id: id },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!advice) {
+        throw new NotFoundException('Doctor advice not found');
+      }
+
+      const patientCase = await queryRunner.manager.findOne(PatientCases, {
+        where: { caseId: advice.case_id },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!patientCase) {
+        throw new NotFoundException('Patient case not found');
+      }
+      if (patientCase.doctorId !== doctorId) {
+        throw new ForbiddenException('This patient case is assigned to another doctor');
+      }
+      if (advice.status !== 'DRAFT') {
+        throw new ConflictException('Only DRAFT advice can be published');
+      }
+      if (['closed', 'cancelled', 'canceled'].includes(patientCase.status.toLowerCase())) {
+        throw new ConflictException('Cannot publish advice for a closed or cancelled case');
+      }
+
+      advice.status = 'PUBLISHED';
+      await queryRunner.manager.save(advice);
+
+      patientCase.status = 'ADVICE_GIVEN';
+      await queryRunner.manager.save(patientCase);
+
+      await queryRunner.commitTransaction();
+      return {
+        message: 'Advice published successfully',
+        advice,
+        patient_case: {
+          case_id: patientCase.caseId,
+          status: patientCase.status,
+        },
+      };
+    } catch (error) {
+      if (queryRunner.isTransactionActive) {
+        await queryRunner.rollbackTransaction();
+      }
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 }

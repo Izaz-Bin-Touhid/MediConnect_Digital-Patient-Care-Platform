@@ -92,3 +92,13 @@ Patient profile, case and payment files are together in `patient`. Authenticatio
 - `GET /doctors/verified` lists approved doctors. `GET /auth/me` returns the logged-in account.
 - Admin account creation requires an existing Admin token. The initial Admin account must be provisioned separately.
 - Swagger UI is available at `http://localhost:3000/api`.
+
+## Logging, configuration and advice publishing
+
+Requests log method, path, HTTP status and duration. Query values, headers and bodies are omitted.
+
+Startup validates required database settings, TCP port ranges and a JWT secret of at least 32 non-padding characters. See `.env.example` for variable names; enter local credentials in `.env`.
+
+`POST /doctors/advice/:id/publish` is limited to the assigned Doctor. Publishing changes the advice to `PUBLISHED` and its case to `ADVICE_GIVEN` in one TypeORM transaction. A failed step rolls back both changes. Published advice cannot be edited or deleted, and the Patient can no longer edit that case as a draft.
+
+Database constraint errors use the same error response format as other API errors, without SQL, parameter values or internal driver details.
