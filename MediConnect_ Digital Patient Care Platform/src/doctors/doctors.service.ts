@@ -1,3 +1,4 @@
+import { Payments } from '../patient/entities/payments.entity.js';
 import { ChangeDoctorPasswordDto } from './dtos/change-doctor-password.dto.js';
 import { PatientCases } from '../patient/entities/patient-cases.entity.js';
 import { randomUUID } from 'node:crypto';
@@ -582,7 +583,7 @@ export class DoctorsService {
   async getAssignedCases(doctorId: number, page: number, limit: number) {
     await this.checkApprovedDoctor(doctorId);
     const [data, total] = await this.caseRepo.findAndCount({
-      where: { doctorId, status: Not('draft') },
+      where: { doctorId, status: Not('draft'), payments: { paymentStatus: 'success' } },
       order: { createdAt: 'DESC', caseId: 'ASC' },
       skip: (page - 1) * limit,
       take: limit,
@@ -647,15 +648,18 @@ export class DoctorsService {
     if (patientCase.doctorId !== doctorId) {
       throw new ForbiddenException('This patient case is assigned to another doctor');
     }
-    if (patientCase.status === 'draft') {
-      throw new ConflictException('Consultation payment is required for this case');
+    const payment = await this.dataSource.getRepository(Payments).findOne({
+      where: { patientCase: { caseId }, paymentStatus: 'success' },
+    });
+    if (!payment || patientCase.status === 'draft') {
+      throw new ConflictException('Successful consultation payment is required for this case');
     }
     return patientCase;
   }
 
   private async getAssignedCaseIds(doctorId: number) {
     const cases = await this.caseRepo.find({
-      where: { doctorId, status: Not('draft') },
+      where: { doctorId, status: Not('draft'), payments: { paymentStatus: 'success' } },
       select: { caseId: true },
     });
     return cases.map((patientCase) => patientCase.caseId);
@@ -687,8 +691,11 @@ export class DoctorsService {
       if (patientCase.doctorId !== doctorId) {
         throw new ForbiddenException('This patient case is assigned to another doctor');
       }
-      if (patientCase.status === 'draft') {
-        throw new ConflictException('Consultation payment is required for this case');
+      const payment = await queryRunner.manager.findOne(Payments, {
+        where: { patientCase: { caseId: patientCase.caseId }, paymentStatus: 'success' },
+      });
+      if (!payment || patientCase.status === 'draft') {
+        throw new ConflictException('Successful consultation payment is required for this case');
       }
       if (advice.status !== 'DRAFT') {
         throw new ConflictException('Only DRAFT advice can be published');
