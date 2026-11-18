@@ -1,16 +1,15 @@
 import {
-  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
   MaxLength,
-  Min,
 } from 'class-validator';
 
 export class CreateTestRequestDto {
-  @IsInt()
-  @Min(1)
-  case_id: number;
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(10)
+  case_id: string;
 
   @IsString()
   @IsNotEmpty()

@@ -1,3 +1,4 @@
+import { PatientCases } from '../patient-cases/entities/patient-cases.entity.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { JwtGuards } from '../common/guards/jwt-auth.guard.js';
 import { Module } from '@nestjs/common';
@@ -11,7 +12,7 @@ import { DoctorsController } from './doctors.controller.js';
 import { DoctorsService } from './doctors.service.js';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Doctors, DoctorProfile, DoctorAdvice, TestRequest])],
+  imports: [TypeOrmModule.forFeature([Doctors, DoctorProfile, DoctorAdvice, TestRequest, PatientCases])],
   controllers: [DoctorsController],
   providers: [DoctorsService, JwtGuards, RolesGuard],
   exports: [DoctorsService],

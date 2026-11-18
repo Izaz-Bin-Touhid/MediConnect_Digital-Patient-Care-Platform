@@ -1,3 +1,4 @@
+import { ChangeAdminPasswordDto } from './dtos/change-admin-password.dto.js';
 import { CreateAdminDto } from './dtos/create-admin.dto.js';
 import {
   BadRequestException, Body, Controller, DefaultValuePipe, Get, Post,
@@ -28,6 +29,14 @@ export class AdminsController {
   @Get('me')
   getOwnProfile(@Req() req: AdminRequest) {
     return req.user;
+  }
+
+  @Patch('me/password')
+  async changePassword(
+    @Req() req: AdminRequest,
+    @Body() dto: ChangeAdminPasswordDto,
+  ) {
+    return await this.adminsService.changePassword(req.user.admin_id, dto);
   }
 
   @Patch('me')

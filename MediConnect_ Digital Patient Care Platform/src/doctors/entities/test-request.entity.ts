@@ -1,7 +1,10 @@
+import type { PatientCases } from '../../patient-cases/entities/patient-cases.entity.js';
 ﻿import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
+  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -18,11 +21,19 @@ export class TestRequest {
   })
   request_code: string;
 
-  // Add the PATIENT_CASE foreign key when its entity is integrated.
   @Column({
-    type: 'int',
+    type: 'varchar',
+    length: 10,
   })
-  case_id: number;
+  case_id: string;
+
+  @ManyToOne('PatientCases', { nullable: false, onDelete: 'RESTRICT' })
+  @JoinColumn({
+    name: 'case_id',
+    referencedColumnName: 'caseId',
+    foreignKeyConstraintName: 'FK_TEST_REQUEST_CASE',
+  })
+  patientCase: PatientCases;
 
   // Add the DIAGNOSTIC_CENTER foreign key when its entity is integrated.
   @Column({

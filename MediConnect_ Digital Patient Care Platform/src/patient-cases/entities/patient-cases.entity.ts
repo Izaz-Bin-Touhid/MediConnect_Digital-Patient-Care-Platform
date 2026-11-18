@@ -7,6 +7,7 @@ import {
   OneToMany,
   PrimaryColumn,
 } from 'typeorm';
+import type { Doctors } from '../../doctors/entities/doctors.entity.js';
 import type { Patients } from '../../patients/entities/patients.entity.js';
 import type { Payments } from '../../payments/entities/payments.entity.js';
 
@@ -38,10 +39,17 @@ export class PatientCases {
 
   @Column({
     name: 'doctor_id',
-    type: 'varchar',
-    length: 10,
+    type: 'int',
   })
-  doctorId: string;
+  doctorId: number;
+
+  @ManyToOne('Doctors', { nullable: false, onDelete: 'RESTRICT' })
+  @JoinColumn({
+    name: 'doctor_id',
+    referencedColumnName: 'doctor_id',
+    foreignKeyConstraintName: 'FK_PATIENT_CASE_DOCTOR',
+  })
+  doctor: Doctors;
 
   @Column({
     name: 'coordinator_id',

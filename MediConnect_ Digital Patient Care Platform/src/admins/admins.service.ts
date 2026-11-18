@@ -1,6 +1,7 @@
+import { ChangeAdminPasswordDto } from './dtos/change-admin-password.dto.js';
 import * as bcrypt from 'bcrypt';
 import { CreateAdminDto } from './dtos/create-admin.dto.js';
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, UnauthorizedException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
 import { Admins } from './entities/admins.entity.js';
@@ -106,5 +107,32 @@ export class AdminsService {
       }
       throw error;
     }
+  }
+
+  async changePassword(id: number, dto: ChangeAdminPasswordDto) {
+    const admin = await this.adminRepo.findOne({
+      where: { admin_id: id },
+      select: { admin_id: true, password: true },
+    });
+
+    if (!admin || !(await bcrypt.compare(dto.current_password, admin.password))) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    if (await bcrypt.compare(dto.new_password, admin.password)) {
+      throw new BadRequestException('New password must differ from the current password');
+    }
+
+    const hashedPassword = await bcrypt.hash(dto.new_password, 10);
+    const result = await this.adminRepo.update(
+      { admin_id: id, password: admin.password },
+      { password: hashedPassword },
+    );
+
+    if (!result.affected) {
+      throw new ConflictException('Password changed during this request; try again');
+    }
+
+    return { message: 'Password changed successfully' };
   }
 }

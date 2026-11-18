@@ -99,12 +99,20 @@ export class DoctorsController {
   }
 
   @Post('advice')
-  async createDoctorAdvice(@Body() dto: CreateDoctorAdviceDto) {
-    return await this.doctorsService.createDoctorAdvice(dto);
+  @UseGuards(JwtGuards, RolesGuard)
+  @Roles('DOCTOR')
+  async createDoctorAdvice(
+    @Req() req: DoctorRequest,
+    @Body() dto: CreateDoctorAdviceDto,
+  ) {
+    return await this.doctorsService.createDoctorAdvice(dto, req.user.doctor_id);
   }
 
   @Get('advice')
+  @UseGuards(JwtGuards, RolesGuard)
+  @Roles('DOCTOR')
   async getAllDoctorAdvice(
+    @Req() req: DoctorRequest,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
   ) {
@@ -119,16 +127,24 @@ export class DoctorsController {
       );
     }
 
-    return await this.doctorsService.getAllDoctorAdvice(page, limit);
+    return await this.doctorsService.getAllDoctorAdvice(page, limit, req.user.doctor_id);
   }
 
   @Get('advice/:id')
-  async getDoctorAdviceById(@Param('id', ParseIntPipe) id: number) {
-    return await this.doctorsService.getDoctorAdviceById(id);
+  @UseGuards(JwtGuards, RolesGuard)
+  @Roles('DOCTOR')
+  async getDoctorAdviceById(
+    @Req() req: DoctorRequest,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return await this.doctorsService.getDoctorAdviceById(id, req.user.doctor_id);
   }
 
   @Patch('advice/:id')
+  @UseGuards(JwtGuards, RolesGuard)
+  @Roles('DOCTOR')
   async updateDoctorAdvice(
+    @Req() req: DoctorRequest,
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateDoctorAdviceDto,
   ) {
@@ -136,21 +152,34 @@ export class DoctorsController {
       throw new BadRequestException('Provide an advice field to update');
     }
 
-    return await this.doctorsService.updateDoctorAdvice(id, dto);
+    return await this.doctorsService.updateDoctorAdvice(id, dto, req.user.doctor_id);
   }
 
   @Delete('advice/:id')
-  async deleteDoctorAdvice(@Param('id', ParseIntPipe) id: number) {
-    return await this.doctorsService.deleteDoctorAdvice(id);
+  @UseGuards(JwtGuards, RolesGuard)
+  @Roles('DOCTOR')
+  async deleteDoctorAdvice(
+    @Req() req: DoctorRequest,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return await this.doctorsService.deleteDoctorAdvice(id, req.user.doctor_id);
   }
 
   @Post('test-requests')
-  async createTestRequest(@Body() dto: CreateTestRequestDto) {
-    return await this.doctorsService.createTestRequest(dto);
+  @UseGuards(JwtGuards, RolesGuard)
+  @Roles('DOCTOR')
+  async createTestRequest(
+    @Req() req: DoctorRequest,
+    @Body() dto: CreateTestRequestDto,
+  ) {
+    return await this.doctorsService.createTestRequest(dto, req.user.doctor_id);
   }
 
   @Get('test-requests')
+  @UseGuards(JwtGuards, RolesGuard)
+  @Roles('DOCTOR')
   async getAllTestRequests(
+    @Req() req: DoctorRequest,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
   ) {
@@ -165,16 +194,24 @@ export class DoctorsController {
       );
     }
 
-    return await this.doctorsService.getAllTestRequests(page, limit);
+    return await this.doctorsService.getAllTestRequests(page, limit, req.user.doctor_id);
   }
 
   @Get('test-requests/:id')
-  async getTestRequestById(@Param('id', ParseIntPipe) id: number) {
-    return await this.doctorsService.getTestRequestById(id);
+  @UseGuards(JwtGuards, RolesGuard)
+  @Roles('DOCTOR')
+  async getTestRequestById(
+    @Req() req: DoctorRequest,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return await this.doctorsService.getTestRequestById(id, req.user.doctor_id);
   }
 
   @Patch('test-requests/:id')
+  @UseGuards(JwtGuards, RolesGuard)
+  @Roles('DOCTOR')
   async updateTestRequest(
+    @Req() req: DoctorRequest,
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateTestRequestDto,
   ) {
@@ -182,12 +219,17 @@ export class DoctorsController {
       throw new BadRequestException('Provide a test request field to update');
     }
 
-    return await this.doctorsService.updateTestRequest(id, dto);
+    return await this.doctorsService.updateTestRequest(id, dto, req.user.doctor_id);
   }
 
   @Delete('test-requests/:id')
-  async deleteTestRequest(@Param('id', ParseIntPipe) id: number) {
-    return await this.doctorsService.deleteTestRequest(id);
+  @UseGuards(JwtGuards, RolesGuard)
+  @Roles('DOCTOR')
+  async deleteTestRequest(
+    @Req() req: DoctorRequest,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return await this.doctorsService.deleteTestRequest(id, req.user.doctor_id);
   }
 
   @Get('verified')

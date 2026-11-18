@@ -1,3 +1,4 @@
+import { PatientCases } from '../patient-cases/entities/patient-cases.entity.js';
 import { randomUUID } from 'node:crypto';
 import { TestRequest } from './entities/test-request.entity.js';
 import { CreateTestRequestDto } from './dtos/create-test-request.dto.js';
@@ -8,11 +9,12 @@ import { UpdateDoctorAdviceDto } from './dtos/update-doctor-advice.dto.js';
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { QueryFailedError, Repository } from 'typeorm';
+import { In, QueryFailedError, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 
 import { Doctors } from './entities/doctors.entity.js';
@@ -36,6 +38,9 @@ export class DoctorsService {
 
     @InjectRepository(TestRequest)
     private readonly testRequestRepo: Repository<TestRequest>,
+
+    @InjectRepository(PatientCases)
+    private readonly caseRepo: Repository<PatientCases>,
   ) {}
 
   async createDoctor(dto: CreateDoctorDto) {
@@ -141,17 +146,29 @@ export class DoctorsService {
   }
 
   async deleteDoctor(id: number) {
-    const result = await this.doctorRepo.delete(id);
-
-    if (!result.affected) {
-      throw new NotFoundException(
-        `Doctor with id ${id} not found`,
+    const profileCount = await this.profileRepo.count({ where: { doctor_id: id } });
+    const caseCount = await this.caseRepo.count({ where: { doctorId: id } });
+    if (profileCount || caseCount) {
+      throw new ConflictException(
+        'Doctor has a profile or patient cases and cannot be deleted',
       );
     }
 
-    return {
-      message: `Doctor with id ${id} deleted successfully`,
-    };
+    try {
+      const result = await this.doctorRepo.delete(id);
+      if (!result.affected) {
+        throw new NotFoundException(`Doctor with id ${id} not found`);
+      }
+      return { message: `Doctor with id ${id} deleted successfully` };
+    } catch (error) {
+      if (error instanceof QueryFailedError &&
+          (error.driverError as { code?: string }).code === '23503') {
+        throw new ConflictException(
+          'Doctor has a profile or patient cases and cannot be deleted',
+        );
+      }
+      throw error;
+    }
   }
 
   async createDoctorProfile(dto: CreateDoctorProfileDto, doctorId: number) {
@@ -297,14 +314,16 @@ export class DoctorsService {
     };
   }
 
-  // Case existence and assigned-doctor checks await PATIENT_CASE integration.
-  async createDoctorAdvice(dto: CreateDoctorAdviceDto) {
+  async createDoctorAdvice(dto: CreateDoctorAdviceDto, doctorId: number) {
+    await this.checkCaseOwner(dto.case_id, doctorId);
     const advice = this.adviceRepo.create(dto);
     return await this.adviceRepo.save(advice);
   }
 
-  async getAllDoctorAdvice(page: number, limit: number) {
+  async getAllDoctorAdvice(page: number, limit: number, doctorId: number) {
+    const caseIds = await this.getAssignedCaseIds(doctorId);
     const [data, total] = await this.adviceRepo.findAndCount({
+      where: { case_id: In(caseIds) },
       skip: (page - 1) * limit,
       take: limit,
       order: { advice_id: 'ASC' },
@@ -321,7 +340,7 @@ export class DoctorsService {
     };
   }
 
-  async getDoctorAdviceById(id: number): Promise<DoctorAdvice> {
+  async getDoctorAdviceById(id: number, doctorId: number): Promise<DoctorAdvice> {
     const advice = await this.adviceRepo.findOne({
       where: { advice_id: id },
     });
@@ -332,11 +351,12 @@ export class DoctorsService {
       );
     }
 
+    await this.checkCaseOwner(advice.case_id, doctorId);
     return advice;
   }
 
-  async updateDoctorAdvice(id: number, dto: UpdateDoctorAdviceDto) {
-    const advice = await this.getDoctorAdviceById(id);
+  async updateDoctorAdvice(id: number, dto: UpdateDoctorAdviceDto, doctorId: number) {
+    const advice = await this.getDoctorAdviceById(id, doctorId);
 
     if (advice.status !== 'DRAFT') {
       throw new ConflictException('Only DRAFT advice can be updated');
@@ -351,11 +371,11 @@ export class DoctorsService {
       throw new ConflictException('Advice changed; reload and try again');
     }
 
-    return await this.getDoctorAdviceById(id);
+    return await this.getDoctorAdviceById(id, doctorId);
   }
 
-  async deleteDoctorAdvice(id: number) {
-    const advice = await this.getDoctorAdviceById(id);
+  async deleteDoctorAdvice(id: number, doctorId: number) {
+    const advice = await this.getDoctorAdviceById(id, doctorId);
 
     if (advice.status !== 'DRAFT') {
       throw new ConflictException('Only DRAFT advice can be deleted');
@@ -375,8 +395,9 @@ export class DoctorsService {
     };
   }
 
-  // Case and center foreign keys and ownership checks await team integration.
-  async createTestRequest(dto: CreateTestRequestDto) {
+  // Diagnostic center integration is still pending.
+  async createTestRequest(dto: CreateTestRequestDto, doctorId: number) {
+    await this.checkCaseOwner(dto.case_id, doctorId);
     const request = this.testRequestRepo.create({
       ...dto,
       request_code: `TR-${randomUUID()}`,
@@ -385,8 +406,10 @@ export class DoctorsService {
     return await this.testRequestRepo.save(request);
   }
 
-  async getAllTestRequests(page: number, limit: number) {
+  async getAllTestRequests(page: number, limit: number, doctorId: number) {
+    const caseIds = await this.getAssignedCaseIds(doctorId);
     const [data, total] = await this.testRequestRepo.findAndCount({
+      where: { case_id: In(caseIds) },
       skip: (page - 1) * limit,
       take: limit,
       order: { request_id: 'ASC' },
@@ -403,7 +426,7 @@ export class DoctorsService {
     };
   }
 
-  async getTestRequestById(id: number): Promise<TestRequest> {
+  async getTestRequestById(id: number, doctorId: number): Promise<TestRequest> {
     const request = await this.testRequestRepo.findOne({
       where: { request_id: id },
     });
@@ -414,11 +437,12 @@ export class DoctorsService {
       );
     }
 
+    await this.checkCaseOwner(request.case_id, doctorId);
     return request;
   }
 
-  async updateTestRequest(id: number, dto: UpdateTestRequestDto) {
-    const request = await this.getTestRequestById(id);
+  async updateTestRequest(id: number, dto: UpdateTestRequestDto, doctorId: number) {
+    const request = await this.getTestRequestById(id, doctorId);
 
     if (request.status !== 'DRAFT') {
       throw new ConflictException('Only DRAFT test requests can be updated');
@@ -433,11 +457,11 @@ export class DoctorsService {
       throw new ConflictException('Test request changed; reload and try again');
     }
 
-    return await this.getTestRequestById(id);
+    return await this.getTestRequestById(id, doctorId);
   }
 
-  async deleteTestRequest(id: number) {
-    const request = await this.getTestRequestById(id);
+  async deleteTestRequest(id: number, doctorId: number) {
+    const request = await this.getTestRequestById(id, doctorId);
 
     if (request.status !== 'DRAFT') {
       throw new ConflictException('Only DRAFT test requests can be deleted');
@@ -531,5 +555,26 @@ export class DoctorsService {
       take: limit,
     });
     return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+  }
+
+  private async checkCaseOwner(caseId: string, doctorId: number) {
+    const patientCase = await this.caseRepo.findOne({
+      where: { caseId },
+    });
+    if (!patientCase) {
+      throw new NotFoundException('Patient case not found');
+    }
+    if (patientCase.doctorId !== doctorId) {
+      throw new ForbiddenException('This patient case is assigned to another doctor');
+    }
+    return patientCase;
+  }
+
+  private async getAssignedCaseIds(doctorId: number) {
+    const cases = await this.caseRepo.find({
+      where: { doctorId },
+      select: { caseId: true },
+    });
+    return cases.map((patientCase) => patientCase.caseId);
   }
 }
