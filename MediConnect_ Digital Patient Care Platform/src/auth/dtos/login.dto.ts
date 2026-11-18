@@ -5,14 +5,17 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class LoginDto {
+  @ApiProperty({ example: 'P-1001', minLength: 5, maxLength: 10 })
   @IsString()
   @IsNotEmpty()
   @MinLength(5)
   @MaxLength(10)
   patientId: string;
 
+  @ApiProperty({ example: 'Patient@123', minLength: 8, maxLength: 20 })
   @IsString()
   @IsNotEmpty()
   @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).{8,20}$/, {
