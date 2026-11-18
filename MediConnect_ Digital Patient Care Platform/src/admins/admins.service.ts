@@ -1,3 +1,4 @@
+import { MailService } from '../mail/mail.service.js';
 import { ChangeAdminPasswordDto } from './dtos/change-admin-password.dto.js';
 import * as bcrypt from 'bcrypt';
 import { CreateAdminDto } from './dtos/create-admin.dto.js';
@@ -16,6 +17,7 @@ export class AdminsService {
     private readonly adminRepo: Repository<Admins>,
     @InjectRepository(DoctorProfile)
     private readonly profileRepo: Repository<DoctorProfile>,
+    private readonly mailService: MailService,
   ) {}
 
   async getAdminForLogin(email: string) {
@@ -82,6 +84,9 @@ export class AdminsService {
     if (!result.affected) {
       throw new ConflictException('Profile was already reviewed; reload and try again');
     }
+    await this.mailService.sendDoctorVerification(
+      profile.doctor.email, profile.doctor.full_name, dto.verification_status,
+    );
     return await this.getDoctorProfileById(id);
   }
 

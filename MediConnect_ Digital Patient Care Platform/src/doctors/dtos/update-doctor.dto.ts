@@ -1,7 +1,7 @@
 import {
   OmitType,
   PartialType,
-} from '@nestjs/mapped-types';
+} from '@nestjs/swagger';
 
 import { CreateDoctorDto } from './create-doctor.dto.js';
 

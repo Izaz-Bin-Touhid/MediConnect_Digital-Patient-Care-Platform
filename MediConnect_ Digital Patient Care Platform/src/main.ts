@@ -1,9 +1,8 @@
-import { DatabaseExceptionFilter } from './common/filters/database-exception.filter.js';
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module.js';
+import { NestFactory, HttpAdapterHost } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { HttpAdapterHost } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { AppModule } from './app.module.js';
+import { DatabaseExceptionFilter } from './common/filters/database-exception.filter.js';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter.js';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor.js';
 
@@ -22,30 +21,23 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
+
   const config = new DocumentBuilder()
-    .setTitle('MediConnect')
+    .setTitle('MediConnect API')
     .setDescription('REST API for the MediConnect digital patient care platform')
     .setVersion('1.0')
-    .addBearerAuth(
-      {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        name: 'Authorization',
-        description: 'Enter the JWT access token',
-        in: 'header',
-      },
-      'JWT',
-    )
+    .addBearerAuth()
+    .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'JWT')
     .addTag('Authentication')
+    .addTag('Doctors')
+    .addTag('Admins')
     .addTag('Patients')
     .addTag('Patient Cases')
     .build();
 
-  const documentFactory = () =>
-    SwaggerModule.createDocument(app, config);
-
-  SwaggerModule.setup('api', app, documentFactory);
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, document);
+  SwaggerModule.setup('api/docs', app, document);
 
   await app.listen(process.env.PORT ?? 3000);
 }
