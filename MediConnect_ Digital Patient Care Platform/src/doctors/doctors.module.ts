@@ -1,3 +1,5 @@
+import { RolesGuard } from '../auth/roles/roles.guard.js';
+import { JwtGuards } from '../auth/jwtGuards.js';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
@@ -11,6 +13,7 @@ import { DoctorsService } from './doctors.service.js';
 @Module({
   imports: [TypeOrmModule.forFeature([Doctors, DoctorProfile, DoctorAdvice, TestRequest])],
   controllers: [DoctorsController],
-  providers: [DoctorsService],
+  providers: [DoctorsService, JwtGuards, RolesGuard],
+  exports: [DoctorsService],
 })
 export class DoctorsModule {}

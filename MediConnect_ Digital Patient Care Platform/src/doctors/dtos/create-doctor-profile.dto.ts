@@ -11,10 +11,6 @@ import {
 } from 'class-validator';
 
 export class CreateDoctorProfileDto {
-  @IsInt()
-  @Min(1)
-  doctor_id: number;
-
   @IsString()
   @IsNotEmpty()
   @MaxLength(1000)

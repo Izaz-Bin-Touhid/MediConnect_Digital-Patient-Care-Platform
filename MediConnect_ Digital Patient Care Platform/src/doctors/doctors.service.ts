@@ -6,6 +6,7 @@ import { DoctorAdvice } from './entities/doctor-advice.entity.js';
 import { CreateDoctorAdviceDto } from './dtos/create-doctor-advice.dto.js';
 import { UpdateDoctorAdviceDto } from './dtos/update-doctor-advice.dto.js';
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -74,8 +75,23 @@ export class DoctorsService {
     }
   }
 
-  async getAllDoctors(): Promise<Doctors[]> {
-    return await this.doctorRepo.find();
+  async getAllDoctors(page: number, limit: number, doctorId: number) {
+    const [data, total] = await this.doctorRepo.findAndCount({
+      where: { doctor_id: doctorId },
+      skip: (page - 1) * limit,
+      take: limit,
+      order: { doctor_id: 'ASC' },
+    });
+
+    return {
+      data,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async getDoctorById(id: number): Promise<Doctors> {
@@ -138,12 +154,13 @@ export class DoctorsService {
     };
   }
 
-  async createDoctorProfile(dto: CreateDoctorProfileDto) {
-    const doctor = await this.getDoctorById(dto.doctor_id);
+  async createDoctorProfile(dto: CreateDoctorProfileDto, doctorId: number) {
+    const doctor = await this.getDoctorById(doctorId);
 
     try {
       const profile = this.profileRepo.create({
         ...dto,
+        doctor_id: doctorId,
         doctor,
         consultation_fee: dto.consultation_fee.toFixed(2),
       });
@@ -166,12 +183,24 @@ export class DoctorsService {
     }
   }
 
-  async getAllDoctorProfiles(): Promise<DoctorProfile[]> {
-    return await this.profileRepo.find({
-      relations: {
-        doctor: true,
-      },
+  async getAllDoctorProfiles(page: number, limit: number, doctorId: number) {
+    const [data, total] = await this.profileRepo.findAndCount({
+      where: { doctor_id: doctorId },
+      skip: (page - 1) * limit,
+      take: limit,
+      order: { profile_id: 'ASC' },
+      relations: { doctor: true },
     });
+
+    return {
+      data,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async getDoctorProfileById(id: number): Promise<DoctorProfile> {
@@ -274,8 +303,22 @@ export class DoctorsService {
     return await this.adviceRepo.save(advice);
   }
 
-  async getAllDoctorAdvice(): Promise<DoctorAdvice[]> {
-    return await this.adviceRepo.find();
+  async getAllDoctorAdvice(page: number, limit: number) {
+    const [data, total] = await this.adviceRepo.findAndCount({
+      skip: (page - 1) * limit,
+      take: limit,
+      order: { advice_id: 'ASC' },
+    });
+
+    return {
+      data,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async getDoctorAdviceById(id: number): Promise<DoctorAdvice> {
@@ -342,8 +385,22 @@ export class DoctorsService {
     return await this.testRequestRepo.save(request);
   }
 
-  async getAllTestRequests(): Promise<TestRequest[]> {
-    return await this.testRequestRepo.find();
+  async getAllTestRequests(page: number, limit: number) {
+    const [data, total] = await this.testRequestRepo.findAndCount({
+      skip: (page - 1) * limit,
+      take: limit,
+      order: { request_id: 'ASC' },
+    });
+
+    return {
+      data,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async getTestRequestById(id: number): Promise<TestRequest> {
@@ -398,5 +455,81 @@ export class DoctorsService {
     return {
       message: `Test request with id ${id} deleted successfully`,
     };
+  }
+
+  // Only authentication may load the password hash.
+  async getDoctorForLogin(email: string): Promise<Doctors | null> {
+    return await this.doctorRepo.findOne({
+      where: { email },
+      select: {
+        doctor_id: true,
+        password: true,
+      },
+    });
+  }
+
+  async getDoctorForToken(id: number): Promise<Doctors | null> {
+    return await this.doctorRepo.findOne({
+      where: { doctor_id: id },
+    });
+  }
+
+  async submitDoctorProfile(id: number) {
+    const profile = await this.getDoctorProfileById(id);
+
+    if (!['DRAFT', 'REJECTED'].includes(profile.verification_status)) {
+      throw new ConflictException(
+        'Only DRAFT or REJECTED profiles can be submitted',
+      );
+    }
+
+    if (
+      !profile.qualification.trim() ||
+      !profile.specialization.trim() ||
+      !profile.registration_no.trim() ||
+      !profile.supporting_documents?.length ||
+      profile.supporting_documents.some((document) => !document.trim())
+    ) {
+      throw new BadRequestException(
+        'Complete the profile and add supporting documents before submitting',
+      );
+    }
+
+    const result = await this.profileRepo.update(
+      { profile_id: id, verification_status: profile.verification_status },
+      {
+        verification_status: 'PENDING',
+        admin_id: null,
+        verified_at: null,
+      },
+    );
+
+    if (!result.affected) {
+      throw new ConflictException('Profile changed; reload and try again');
+    }
+
+    return await this.getDoctorProfileById(id);
+  }
+
+  async getVerifiedDoctors(page: number, limit: number) {
+    const [data, total] = await this.profileRepo.findAndCount({
+      where: { verification_status: 'APPROVED' },
+      relations: { doctor: true },
+      select: {
+        profile_id: true,
+        doctor_id: true,
+        qualification: true,
+        specialization: true,
+        experience_years: true,
+        consultation_fee: true,
+        verification_status: true,
+        verified_at: true,
+        doctor: { doctor_id: true, full_name: true },
+      },
+      order: { profile_id: 'ASC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+    return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
   }
 }

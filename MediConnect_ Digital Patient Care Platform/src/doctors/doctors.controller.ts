@@ -1,3 +1,8 @@
+import { Roles } from '../auth/roles/roles.decorator.js';
+import { RolesGuard } from '../auth/roles/roles.guard.js';
+import type { Request } from 'express';
+import type { Doctors } from './entities/doctors.entity.js';
+import { JwtGuards } from '../auth/jwtGuards.js';
 import { CreateTestRequestDto } from './dtos/create-test-request.dto.js';
 import { UpdateTestRequestDto } from './dtos/update-test-request.dto.js';
 import { CreateDoctorAdviceDto } from './dtos/create-doctor-advice.dto.js';
@@ -6,12 +11,17 @@ import {
   BadRequestException,
   Body,
   Controller,
+  DefaultValuePipe,
   Delete,
   Get,
+  ForbiddenException,
   Param,
   ParseIntPipe,
   Patch,
   Post,
+  Query,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
 
 import { DoctorsService } from './doctors.service.js';
@@ -19,6 +29,8 @@ import { CreateDoctorDto } from './dtos/create-doctor.dto.js';
 import { UpdateDoctorDto } from './dtos/update-doctor.dto.js';
 import { CreateDoctorProfileDto } from './dtos/create-doctor-profile.dto.js';
 import { UpdateDoctorProfileDto } from './dtos/update-doctor-profile.dto.js';
+
+type DoctorRequest = Request & { user: Doctors };
 
 @Controller('doctors')
 export class DoctorsController {
@@ -32,19 +44,57 @@ export class DoctorsController {
   }
 
   @Get()
-  async getAllDoctors() {
-    return await this.doctorsService.getAllDoctors();
+  @UseGuards(JwtGuards, RolesGuard)
+  @Roles('DOCTOR')
+  async getAllDoctors(
+    @Req() req: DoctorRequest,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ) {
+    if (
+      !Number.isSafeInteger(page) ||
+      !Number.isSafeInteger(limit) ||
+      page < 1 || limit < 1 || limit > 100 ||
+      !Number.isSafeInteger((page - 1) * limit)
+    ) {
+      throw new BadRequestException(
+        'page must be a positive integer; limit must be between 1 and 100',
+      );
+    }
+
+    return await this.doctorsService.getAllDoctors(page, limit, req.user.doctor_id);
   }
 
   @Get('profiles')
-  async getAllDoctorProfiles() {
-    return await this.doctorsService.getAllDoctorProfiles();
+  @UseGuards(JwtGuards, RolesGuard)
+  @Roles('DOCTOR')
+  async getAllDoctorProfiles(
+    @Req() req: DoctorRequest,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ) {
+    if (
+      !Number.isSafeInteger(page) ||
+      !Number.isSafeInteger(limit) ||
+      page < 1 || limit < 1 || limit > 100 ||
+      !Number.isSafeInteger((page - 1) * limit)
+    ) {
+      throw new BadRequestException(
+        'page must be a positive integer; limit must be between 1 and 100',
+      );
+    }
+
+    return await this.doctorsService.getAllDoctorProfiles(page, limit, req.user.doctor_id);
   }
 
   @Get('profiles/:id')
+  @UseGuards(JwtGuards, RolesGuard)
+  @Roles('DOCTOR')
   async getDoctorProfileById(
+    @Req() req: DoctorRequest,
     @Param('id', ParseIntPipe) id: number,
   ) {
+    await this.checkProfileOwner(req.user.doctor_id, id);
     return await this.doctorsService.getDoctorProfileById(id);
   }
 
@@ -54,8 +104,22 @@ export class DoctorsController {
   }
 
   @Get('advice')
-  async getAllDoctorAdvice() {
-    return await this.doctorsService.getAllDoctorAdvice();
+  async getAllDoctorAdvice(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ) {
+    if (
+      !Number.isSafeInteger(page) ||
+      !Number.isSafeInteger(limit) ||
+      page < 1 || limit < 1 || limit > 100 ||
+      !Number.isSafeInteger((page - 1) * limit)
+    ) {
+      throw new BadRequestException(
+        'page must be a positive integer; limit must be between 1 and 100',
+      );
+    }
+
+    return await this.doctorsService.getAllDoctorAdvice(page, limit);
   }
 
   @Get('advice/:id')
@@ -86,8 +150,22 @@ export class DoctorsController {
   }
 
   @Get('test-requests')
-  async getAllTestRequests() {
-    return await this.doctorsService.getAllTestRequests();
+  async getAllTestRequests(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ) {
+    if (
+      !Number.isSafeInteger(page) ||
+      !Number.isSafeInteger(limit) ||
+      page < 1 || limit < 1 || limit > 100 ||
+      !Number.isSafeInteger((page - 1) * limit)
+    ) {
+      throw new BadRequestException(
+        'page must be a positive integer; limit must be between 1 and 100',
+      );
+    }
+
+    return await this.doctorsService.getAllTestRequests(page, limit);
   }
 
   @Get('test-requests/:id')
@@ -112,15 +190,34 @@ export class DoctorsController {
     return await this.doctorsService.deleteTestRequest(id);
   }
 
+  @Get('verified')
+  async getVerifiedDoctors(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ) {
+    if (!Number.isSafeInteger(page) || page < 1 || limit < 1 || limit > 100 ||
+        !Number.isSafeInteger((page - 1) * limit)) {
+      throw new BadRequestException('page must be positive; limit must be between 1 and 100');
+    }
+    return await this.doctorsService.getVerifiedDoctors(page, limit);
+  }
+
   @Get(':id')
+  @UseGuards(JwtGuards, RolesGuard)
+  @Roles('DOCTOR')
   async getDoctorById(
+    @Req() req: DoctorRequest,
     @Param('id', ParseIntPipe) id: number,
   ) {
+    this.checkDoctorOwner(req.user.doctor_id, id);
     return await this.doctorsService.getDoctorById(id);
   }
 
   @Patch('profiles/:id')
+  @UseGuards(JwtGuards, RolesGuard)
+  @Roles('DOCTOR')
   async updateDoctorProfile(
+    @Req() req: DoctorRequest,
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateDoctorProfileDto,
   ) {
@@ -130,11 +227,15 @@ export class DoctorsController {
       );
     }
 
+    await this.checkProfileOwner(req.user.doctor_id, id);
     return await this.doctorsService.updateDoctorProfile(id, dto);
   }
 
   @Patch(':id')
+  @UseGuards(JwtGuards, RolesGuard)
+  @Roles('DOCTOR')
   async updateDoctor(
+    @Req() req: DoctorRequest,
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateDoctorDto,
   ) {
@@ -144,25 +245,63 @@ export class DoctorsController {
       );
     }
 
+    this.checkDoctorOwner(req.user.doctor_id, id);
     return await this.doctorsService.updateDoctor(id, dto);
   }
 
   @Delete('profiles/:id')
+  @UseGuards(JwtGuards, RolesGuard)
+  @Roles('DOCTOR')
   async deleteDoctorProfile(
+    @Req() req: DoctorRequest,
     @Param('id', ParseIntPipe) id: number,
   ) {
+    await this.checkProfileOwner(req.user.doctor_id, id);
     return await this.doctorsService.deleteDoctorProfile(id);
   }
 
   @Delete(':id')
+  @UseGuards(JwtGuards, RolesGuard)
+  @Roles('DOCTOR')
   async deleteDoctor(
+    @Req() req: DoctorRequest,
     @Param('id', ParseIntPipe) id: number,
   ) {
+    this.checkDoctorOwner(req.user.doctor_id, id);
     return await this.doctorsService.deleteDoctor(id);
   }
 
   @Post('profiles')
-  async createDoctorProfile(@Body() dto: CreateDoctorProfileDto) {
-    return await this.doctorsService.createDoctorProfile(dto);
+  @UseGuards(JwtGuards, RolesGuard)
+  @Roles('DOCTOR')
+  async createDoctorProfile(
+    @Req() req: DoctorRequest,
+    @Body() dto: CreateDoctorProfileDto,
+  ) {
+    return await this.doctorsService.createDoctorProfile(dto, req.user.doctor_id);
+  }
+
+  @Post('profiles/:id/submit')
+  @UseGuards(JwtGuards, RolesGuard)
+  @Roles('DOCTOR')
+  async submitDoctorProfile(
+    @Req() req: DoctorRequest,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    await this.checkProfileOwner(req.user.doctor_id, id);
+    return await this.doctorsService.submitDoctorProfile(id);
+  }
+
+  private checkDoctorOwner(loggedInDoctorId: number, recordDoctorId: number) {
+    if (loggedInDoctorId !== recordDoctorId) {
+      throw new ForbiddenException('You cannot access another doctor account');
+    }
+  }
+
+  private async checkProfileOwner(loggedInDoctorId: number, profileId: number) {
+    const profile = await this.doctorsService.getDoctorProfileById(profileId);
+    if (loggedInDoctorId !== profile.doctor_id) {
+      throw new ForbiddenException('You cannot access another doctor profile');
+    }
   }
 }

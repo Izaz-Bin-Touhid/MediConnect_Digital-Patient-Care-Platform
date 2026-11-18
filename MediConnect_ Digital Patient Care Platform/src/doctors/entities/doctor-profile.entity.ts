@@ -3,10 +3,12 @@
   Entity,
   JoinColumn,
   OneToOne,
+  ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
 import type { Doctors } from './doctors.entity.js';
+import type { Admins } from '../../admins/entities/admins.entity.js';
 
 @Entity('DOCTOR_PROFILE')
 export class DoctorProfile {
@@ -34,6 +36,10 @@ export class DoctorProfile {
     nullable: true,
   })
   admin_id: number | null;
+
+  @ManyToOne('Admins', { nullable: true, onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'admin_id', referencedColumnName: 'admin_id' })
+  admin: Admins | null;
 
   @Column({
     type: 'text',

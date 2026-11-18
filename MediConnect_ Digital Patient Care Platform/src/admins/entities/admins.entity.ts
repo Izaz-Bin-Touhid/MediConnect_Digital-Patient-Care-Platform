@@ -1,0 +1,19 @@
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+
+@Entity('ADMIN')
+export class Admins {
+  @PrimaryGeneratedColumn()
+  admin_id: number;
+
+  @Column({ type: 'varchar', length: 100 })
+  full_name: string;
+
+  @Column({ type: 'varchar', length: 150, unique: true })
+  email: string;
+
+  @Column({ type: 'varchar', length: 20 })
+  phone: string;
+
+  @Column({ type: 'varchar', length: 255, select: false })
+  password: string;
+}

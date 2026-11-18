@@ -1,3 +1,5 @@
+import { AdminsModule } from './admins/admins.module.js';
+import { AuthModule } from './auth/auth.module.js';
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
@@ -19,6 +21,8 @@ import { DoctorsModule } from './doctors/doctors.module.js';
       synchronize: true,
     }),
     DoctorsModule,
+    AuthModule,
+    AdminsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
