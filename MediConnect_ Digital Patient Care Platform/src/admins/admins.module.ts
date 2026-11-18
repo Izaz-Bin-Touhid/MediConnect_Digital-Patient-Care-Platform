@@ -1,3 +1,8 @@
+import { Doctors } from '../doctors/entities/doctors.entity.js';
+import { Patients } from '../patient/entities/patients.entity.js';
+import { PatientCases } from '../patient/entities/patient-cases.entity.js';
+import { Payments } from '../patient/entities/payments.entity.js';
+import { CoordinatorProfile } from '../coordinator/entities/coordinator-profile.entity.js';
 import { MailModule } from '../mail/mail.module.js';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -9,7 +14,7 @@ import { JwtGuards } from '../common/guards/jwtGuards.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 
 @Module({
-  imports: [MailModule, TypeOrmModule.forFeature([Admins, DoctorProfile])],
+  imports: [MailModule, TypeOrmModule.forFeature([Admins, DoctorProfile, Doctors, Patients, PatientCases, Payments, CoordinatorProfile])],
   controllers: [AdminsController],
   providers: [AdminsService, JwtGuards, RolesGuard],
   exports: [AdminsService],

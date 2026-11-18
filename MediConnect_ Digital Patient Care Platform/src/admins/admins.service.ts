@@ -1,3 +1,8 @@
+import { Doctors } from '../doctors/entities/doctors.entity.js';
+import { Patients } from '../patient/entities/patients.entity.js';
+import { PatientCases } from '../patient/entities/patient-cases.entity.js';
+import { Payments } from '../patient/entities/payments.entity.js';
+import { CoordinatorProfile } from '../coordinator/entities/coordinator-profile.entity.js';
 import { MailService } from '../mail/mail.service.js';
 import { ChangeAdminPasswordDto } from './dtos/change-admin-password.dto.js';
 import * as bcrypt from 'bcrypt';
@@ -18,7 +23,67 @@ export class AdminsService {
     @InjectRepository(DoctorProfile)
     private readonly profileRepo: Repository<DoctorProfile>,
     private readonly mailService: MailService,
+    @InjectRepository(Doctors)
+    private readonly doctorRepo: Repository<Doctors>,
+    @InjectRepository(Patients)
+    private readonly patientRepo: Repository<Patients>,
+    @InjectRepository(PatientCases)
+    private readonly caseRepo: Repository<PatientCases>,
+    @InjectRepository(Payments)
+    private readonly paymentRepo: Repository<Payments>,
+    @InjectRepository(CoordinatorProfile)
+    private readonly coordinatorRepo: Repository<CoordinatorProfile>,
   ) {}
+
+  async getSummary() {
+    const [patients, doctors, coordinators, admins, draftProfiles, pendingProfiles,
+      approvedProfiles, rejectedProfiles, caseStatuses, paymentStatuses, paidTotals] = await Promise.all([
+      this.patientRepo.count(),
+      this.doctorRepo.count(),
+      this.coordinatorRepo.count(),
+      this.adminRepo.count(),
+      this.profileRepo.count({ where: { verification_status: 'DRAFT' } }),
+      this.profileRepo.count({ where: { verification_status: 'PENDING' } }),
+      this.profileRepo.count({ where: { verification_status: 'APPROVED' } }),
+      this.profileRepo.count({ where: { verification_status: 'REJECTED' } }),
+      this.caseRepo.createQueryBuilder('patientCase')
+        .select('patientCase.status', 'status')
+        .addSelect('COUNT(*)', 'count')
+        .groupBy('patientCase.status')
+        .orderBy('patientCase.status', 'ASC')
+        .getRawMany<{ status: string; count: string }>(),
+      this.paymentRepo.createQueryBuilder('payment')
+        .select('payment.paymentStatus', 'status')
+        .addSelect('COUNT(*)', 'count')
+        .groupBy('payment.paymentStatus')
+        .orderBy('payment.paymentStatus', 'ASC')
+        .getRawMany<{ status: string; count: string }>(),
+      this.paymentRepo.createQueryBuilder('payment')
+        .select('COALESCE(SUM(payment.amount), 0)', 'amount')
+        .addSelect('COALESCE(SUM(payment.doctorPayableAmount), 0)', 'doctorPayableAmount')
+        .where('payment.paymentStatus = :status', { status: 'success' })
+        .getRawOne<{ amount: string; doctorPayableAmount: string }>(),
+    ]);
+
+    return {
+      users: { patients, doctors, coordinators, admins },
+      doctor_profiles: {
+        draft: draftProfiles, pending: pendingProfiles,
+        approved: approvedProfiles, rejected: rejectedProfiles,
+      },
+      cases: {
+        total: caseStatuses.reduce((total, row) => total + Number(row.count), 0),
+        by_status: caseStatuses.map(row => ({ status: row.status, count: Number(row.count) })),
+      },
+      payments: {
+        mode: 'demo',
+        total: paymentStatuses.reduce((total, row) => total + Number(row.count), 0),
+        by_status: paymentStatuses.map(row => ({ status: row.status, count: Number(row.count) })),
+        successful_amount: paidTotals?.amount ?? '0',
+        doctor_payable_amount: paidTotals?.doctorPayableAmount ?? '0',
+      },
+    };
+  }
 
   async getAdminForLogin(email: string) {
     return await this.adminRepo.findOne({

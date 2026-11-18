@@ -24,6 +24,12 @@ type AdminRequest = Request & { user: Admins & { role: 'ADMIN' } };
 export class AdminsController {
   constructor(private readonly adminsService: AdminsService) {}
 
+  @Get('summary')
+  @ApiOperation({ summary: 'View overall user, doctor verification, case and demo payment counts' })
+  async getSummary() {
+    return await this.adminsService.getSummary();
+  }
+
   @Post()
   async createAdmin(@Body() dto: CreateAdminDto) {
     return await this.adminsService.createAdmin(dto);
