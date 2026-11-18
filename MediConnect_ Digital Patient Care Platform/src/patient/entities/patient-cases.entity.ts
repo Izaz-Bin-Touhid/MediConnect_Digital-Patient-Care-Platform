@@ -47,7 +47,11 @@ export class PatientCases {
     nullable: false,
     onDelete: 'RESTRICT',
   })
-  @JoinColumn({ name: 'doctor_id' })
+  @JoinColumn({
+    name: 'doctor_id',
+    referencedColumnName: 'doctor_id',
+    foreignKeyConstraintName: 'FK_PATIENT_CASE_DOCTOR',
+  })
   doctor: Doctors;
 
   @Column({

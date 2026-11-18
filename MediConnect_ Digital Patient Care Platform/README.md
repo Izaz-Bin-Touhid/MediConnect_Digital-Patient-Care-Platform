@@ -1,6 +1,6 @@
 # MediConnect: Digital Patient Care Platform
 
-Patient backend built with NestJS, TypeORM and PostgreSQL.
+Patient, Doctor and Admin backend built with NestJS, TypeORM and PostgreSQL.
 
 ## Local setup
 
@@ -29,7 +29,7 @@ The API runs at `http://localhost:3000` by default.
 
 Protected APIs require a Bearer Token. A patient can access only their own profile and cases. Only draft cases can be updated or deleted.
 
-Patient-owned entities are PATIENT, PATIENT_CASE and PAYMENT. The PAYMENT entity is present; payment APIs are pending. The Doctor scaffold already supplied by the team is retained for the Case foreign key. Other role workflows will be connected after the team merges its code.
+Patient-owned entities are PATIENT, PATIENT_CASE and PAYMENT. The PAYMENT entity is present; payment APIs are pending. Doctor profile, advice and test-request CRUD, ownership checks and Admin verification are integrated. Diagnostic center and follow-up workflows are pending.
 
 ## Build
 
@@ -80,3 +80,15 @@ src/
 ```
 
 Patient profile, case and payment files are together in `patient`. Authentication stays in `auth`, and shared guards and pagination stay in `common`. Environment loading is in `config`, and the existing TypeORM connection is in `database`.
+
+## Doctor and Admin integration
+
+- Patient login remains `POST /auth/login` with `patientId` and `password`.
+- Doctor login is `POST /auth/doctor/login` with `email` and `password`.
+- Admin login is `POST /auth/admin/login` with `email` and `password`.
+- Patient login returns its JWT in `data`; Doctor and Admin login return it in `data.access_token`.
+- Doctor registration is `POST /doctors`. Profile, advice and test-request APIs are under `/doctors` and require the logged-in Doctor's own records.
+- Doctors submit profiles through `POST /doctors/profiles/:id/submit`. Admins review them through `PATCH /admins/doctor-profiles/:id/verification`.
+- `GET /doctors/verified` lists approved doctors. `GET /auth/me` returns the logged-in account.
+- Admin account creation requires an existing Admin token. The initial Admin account must be provisioned separately.
+- Swagger UI is available at `http://localhost:3000/api`.

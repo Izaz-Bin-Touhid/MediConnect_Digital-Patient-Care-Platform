@@ -1,6 +1,8 @@
+import { AccountLoginDto } from './dtos/account-login.dto.js';
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   Patch,
   Post,
@@ -80,4 +82,26 @@ export class AuthController {
   async changePassword(@Req() req: any, @Body() passwords: ChangePasswordDto) {
     return await this.authService.changePassword(req.user.id, passwords);
   }
+
+  @HttpCode(200)
+  @Post('doctor/login')
+  @ApiOperation({ summary: 'Log in as a doctor' })
+  async doctorLogin(@Body() dto: AccountLoginDto) {
+    return await this.authService.doctorLogin(dto);
+  }
+
+  @HttpCode(200)
+  @Post('admin/login')
+  @ApiOperation({ summary: 'Log in as an admin' })
+  async adminLogin(@Body() dto: AccountLoginDto) {
+    return await this.authService.adminLogin(dto);
+  }
+
+  @Get('me')
+  @UseGuards(JwtGuards)
+  @ApiBearerAuth('JWT')
+  getProfile(@Req() req: any) {
+    return req.user;
+  }
+
 }

@@ -8,12 +8,14 @@ import { PatientsModule } from './patient/patients.module.js';
 import { PatientCasesModule } from './patient/patient-cases.module.js';
 import { PaymentsModule } from './patient/payments.module.js';
 import { AuthModule } from './auth/auth.module.js';
+import { AdminsModule } from './admins/admins.module.js';
 
 @Module({
   imports: [
     EnvironmentModule,
     DatabaseModule,
     DoctorsModule,
+    AdminsModule,
     PatientsModule,
     PatientCasesModule,
     PaymentsModule,

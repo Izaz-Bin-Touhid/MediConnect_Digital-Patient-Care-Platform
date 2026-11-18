@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
+import { DoctorsModule } from '../doctors/doctors.module.js';
+import { AdminsModule } from '../admins/admins.module.js';
 import { PatientsModule } from '../patient/patients.module.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
@@ -10,6 +12,8 @@ import { JwtStrategy } from './jwtStrategy.strategy.js';
 @Module({
   imports: [
     PatientsModule,
+    DoctorsModule,
+    AdminsModule,
     JwtModule.register({
       global: true,
       signOptions: {
