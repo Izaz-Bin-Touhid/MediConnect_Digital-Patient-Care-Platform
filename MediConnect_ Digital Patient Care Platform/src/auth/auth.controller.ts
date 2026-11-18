@@ -104,4 +104,35 @@ export class AuthController {
     return req.user;
   }
 
+  @HttpCode(200)
+  @Post('coordinator/login')
+  @ApiOperation({ summary: 'Log in as a coordinator' })
+  async coordinatorLogin(@Body() dto: AccountLoginDto) {
+    return await this.authService.coordinatorLogin(dto);
+  }
+
+  @HttpCode(200)
+  @Post('diagnostic-center/login')
+  @ApiOperation({ summary: 'Log in as a diagnostic center' })
+  async diagnosticLogin(@Body() dto: AccountLoginDto) {
+    return await this.authService.diagnosticLogin(dto);
+  }
+
+  @Post('coordinator/logout')
+  @UseGuards(JwtGuards, RolesGuard)
+  @Roles('coordinator')
+  @HttpCode(200)
+  @ApiBearerAuth('JWT')
+  async coordinatorLogout(@Req() req: any) {
+    return await this.authService.coordinatorLogout(req.user.id);
+  }
+
+  @Patch('coordinator/change-password')
+  @UseGuards(JwtGuards, RolesGuard)
+  @Roles('coordinator')
+  @ApiBearerAuth('JWT')
+  async changeCoordinatorPassword(@Req() req: any, @Body() dto: ChangePasswordDto) {
+    return await this.authService.changeCoordinatorPassword(req.user.id, dto);
+  }
+
 }

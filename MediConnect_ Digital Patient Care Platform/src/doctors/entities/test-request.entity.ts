@@ -1,5 +1,6 @@
+import type { DiagnosticCenter } from '../../coordinator/entities/diagnostic-center.entity.js';
 import type { PatientCases } from '../../patient/entities/patient-cases.entity.js';
-﻿import {
+import {
   Column,
   CreateDateColumn,
   Entity,
@@ -35,12 +36,16 @@ export class TestRequest {
   })
   patientCase: PatientCases;
 
-  // Add the DIAGNOSTIC_CENTER foreign key when its entity is integrated.
   @Column({
-    type: 'int',
+    type: 'varchar',
+    length: 10,
     nullable: true,
   })
-  center_id: number | null;
+  center_id: string | null;
+
+  @ManyToOne('DiagnosticCenter', { nullable: true, onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'center_id', referencedColumnName: 'centerId' })
+  diagnosticCenter: DiagnosticCenter | null;
 
   @Column({
     type: 'varchar',

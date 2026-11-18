@@ -9,6 +9,8 @@ import { PatientsModule } from './patient/patients.module.js';
 import { PatientCasesModule } from './patient/patient-cases.module.js';
 import { PaymentsModule } from './patient/payments.module.js';
 import { AuthModule } from './auth/auth.module.js';
+import { AuditModule } from './audit/audit.module.js';
+import { CoordinatorModule } from './coordinator/coordinator.module.js';
 import { AdminsModule } from './admins/admins.module.js';
 
 @Module({
@@ -21,6 +23,8 @@ import { AdminsModule } from './admins/admins.module.js';
     PatientCasesModule,
     PaymentsModule,
     AuthModule,
+    CoordinatorModule,
+    AuditModule,
   ],
   controllers: [AppController],
   providers: [AppService],
