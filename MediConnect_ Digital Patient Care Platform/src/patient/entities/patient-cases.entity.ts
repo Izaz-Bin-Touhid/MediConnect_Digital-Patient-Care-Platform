@@ -7,6 +7,7 @@ import {
   OneToMany,
   PrimaryColumn,
 } from 'typeorm';
+import type { CoordinatorProfile } from '../../coordinator/entities/coordinator-profile.entity.js';
 import type { Doctors } from '../../doctors/entities/doctors.entity.js';
 import type { Patients } from './patients.entity.js';
 import type { Payments } from './payments.entity.js';
@@ -61,6 +62,10 @@ export class PatientCases {
     nullable: true,
   })
   coordinatorId: string | null;
+
+  @ManyToOne('CoordinatorProfile', { nullable: true, onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'coordinator_id', referencedColumnName: 'coordinatorId' })
+  coordinator: CoordinatorProfile | null;
 
   @Column({
     type: 'varchar',

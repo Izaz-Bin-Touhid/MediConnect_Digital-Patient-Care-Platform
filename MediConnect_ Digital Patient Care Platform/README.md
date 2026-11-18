@@ -29,7 +29,7 @@ The API runs at `http://localhost:3000` by default.
 
 Protected APIs require a Bearer Token. A patient can access only their own profile and cases. Only draft cases can be updated or deleted.
 
-Patient-owned entities are PATIENT, PATIENT_CASE and PAYMENT. The PAYMENT entity is present; payment APIs are pending. Doctor profile, advice and test-request CRUD, ownership checks and Admin verification are integrated. Diagnostic center and follow-up workflows are pending.
+Patient-owned entities are PATIENT, PATIENT_CASE and PAYMENT. Local demo payment APIs are available; they simulate outcomes and do not connect to a payment gateway or transfer money. Doctor profile, advice and test-request CRUD, ownership checks and Admin verification are integrated. Coordinator assignment, diagnostic report coordination, follow-ups and reminders are integrated.
 
 ## Build
 
@@ -70,7 +70,9 @@ src/
     patient-cases.controller.ts
     patient-cases.module.ts
     patient-cases.service.ts
+    payments.controller.ts
     payments.module.ts
+    payments.service.ts
   doctors/
     dtos/
     entities/
@@ -102,3 +104,15 @@ Startup validates required database settings, TCP port ranges and a JWT secret o
 `POST /doctors/advice/:id/publish` is limited to the assigned Doctor. Publishing changes the advice to `PUBLISHED` and its case to `ADVICE_GIVEN` in one TypeORM transaction. A failed step rolls back both changes. Published advice cannot be edited or deleted, and the Patient can no longer edit that case as a draft.
 
 Database constraint errors use the same error response format as other API errors, without SQL, parameter values or internal driver details.
+
+## Local demo payment
+
+This is a local simulation for the assignment, not a gateway sandbox or a real payment system. No gateway credentials are needed.
+
+- `POST /payments/demo`: Patient JWT required. Body: `{ "paymentId": "PAY001", "caseId": "C-1001", "result": "success" }`. Use `failed` to simulate failure.
+- `GET /payments?page=1&limit=10`: list only the logged-in patient's payment attempts.
+- `GET /payments/:id`: view only the logged-in patient's payment details.
+
+The fee comes from the selected Doctor's approved profile, never from the request. A successful demo records the full fee as the Doctor's payable amount (no commission), sets `paid_at`, and changes the case from `draft` to `submitted` in the same transaction. Failure is recorded with a zero payable amount, and the case stays `draft`. A failed attempt can be retried with a new payment ID.
+
+Only unpaid draft cases can be paid. Case locking prevents two concurrent successful payments. A failed transaction rolls back the payment and case changes. Draft cases are excluded from Doctor advice/test-request access until payment succeeds.

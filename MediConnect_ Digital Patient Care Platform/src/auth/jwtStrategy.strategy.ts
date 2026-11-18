@@ -1,3 +1,6 @@
+import { DataSource } from 'typeorm';
+import { CoordinatorProfile } from '../coordinator/entities/coordinator-profile.entity.js';
+import { DiagnosticCenter } from '../coordinator/entities/diagnostic-center.entity.js';
 import { DoctorsService } from '../doctors/doctors.service.js';
 import { AdminsService } from '../admins/admins.service.js';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
@@ -9,6 +12,7 @@ import { PatientsService } from '../patient/patients.service.js';
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     private readonly patientsService: PatientsService,
+    private readonly dataSource: DataSource,
     private readonly doctorsService: DoctorsService,
     private readonly adminsService: AdminsService,
   ) {
@@ -41,6 +45,21 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         email: patient.email,
         role: patient.role,
       };
+    }
+
+    if (payloads.role === 'coordinator' && typeof payloads.id === 'string') {
+      const profile = await this.dataSource.getRepository(CoordinatorProfile).findOneBy({ coordinatorId: payloads.id });
+      if (profile && profile.tokenVersion === payloads.tokenVersion) {
+        return { id: profile.coordinatorId, coordinatorId: profile.coordinatorId, role: 'coordinator', tokenVersion: profile.tokenVersion };
+      }
+      throw new UnauthorizedException('Coordinator session expired');
+    }
+    if (payloads.role === 'diagnostic_center' && typeof payloads.id === 'string') {
+      const center = await this.dataSource.getRepository(DiagnosticCenter).findOneBy({ centerId: payloads.id });
+      if (center) {
+        return { id: center.centerId, centerId: center.centerId, role: 'diagnostic_center' };
+      }
+      throw new UnauthorizedException('Diagnostic center account not found');
     }
 
     if (!Number.isInteger(payloads.sub) || payloads.sub < 1) {
