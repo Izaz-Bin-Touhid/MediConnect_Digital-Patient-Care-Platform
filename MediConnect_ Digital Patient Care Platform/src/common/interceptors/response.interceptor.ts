@@ -57,6 +57,27 @@ export class ResponseInterceptor<T>
           };
         }
 
+        // Doctor lists already return { data, meta }; keep one envelope.
+        if (
+          typeof body === 'object' && body !== null &&
+          'data' in body && 'meta' in body &&
+          typeof body.meta === 'object' && body.meta !== null &&
+          'page' in body.meta && 'limit' in body.meta &&
+          'total' in body.meta && 'totalPages' in body.meta
+        ) {
+          const paginated = body as T & {
+            data: T;
+            meta: { page: number; limit: number; total: number; totalPages: number };
+          };
+          data = paginated.data;
+          meta = {
+            page: paginated.meta.page,
+            limit: paginated.meta.limit,
+            total: paginated.meta.total,
+            totalPages: paginated.meta.totalPages,
+          };
+        }
+
         return {
           success: true,
           message: this.getSuccessMessage(request.method, response.statusCode),
