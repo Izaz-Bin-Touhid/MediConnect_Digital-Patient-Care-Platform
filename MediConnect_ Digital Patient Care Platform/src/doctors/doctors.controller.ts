@@ -1,3 +1,4 @@
+import { ChangeDoctorPasswordDto } from './dtos/change-doctor-password.dto.js';
 import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
@@ -268,6 +269,46 @@ export class DoctorsController {
       throw new BadRequestException('page must be positive; limit must be between 1 and 100');
     }
     return await this.doctorsService.getVerifiedDoctors(page, limit);
+  }
+
+  @Get('cases')
+  @ApiBearerAuth()
+  @UseGuards(JwtGuards, RolesGuard)
+  @Roles('DOCTOR')
+  @ApiOperation({ summary: 'List cases assigned to the approved doctor' })
+  async getAssignedCases(
+    @Req() req: DoctorRequest,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ) {
+    if (!Number.isSafeInteger(page) || !Number.isSafeInteger(limit) ||
+        page < 1 || limit < 1 || limit > 100 ||
+        !Number.isSafeInteger((page - 1) * limit)) {
+      throw new BadRequestException('page must be positive; limit must be between 1 and 100');
+    }
+    return await this.doctorsService.getAssignedCases(req.user.doctor_id, page, limit);
+  }
+
+  @Get('cases/:caseId')
+  @ApiBearerAuth()
+  @UseGuards(JwtGuards, RolesGuard)
+  @Roles('DOCTOR')
+  async getAssignedCaseById(
+    @Req() req: DoctorRequest,
+    @Param('caseId') caseId: string,
+  ) {
+    return await this.doctorsService.getAssignedCaseById(caseId, req.user.doctor_id);
+  }
+
+  @Patch('me/password')
+  @ApiBearerAuth()
+  @UseGuards(JwtGuards, RolesGuard)
+  @Roles('DOCTOR')
+  async changePassword(
+    @Req() req: DoctorRequest,
+    @Body() dto: ChangeDoctorPasswordDto,
+  ) {
+    return await this.doctorsService.changePassword(req.user.doctor_id, dto);
   }
 
   @Get(':id')

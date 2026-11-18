@@ -1,3 +1,4 @@
+import { ChangeDoctorPasswordDto } from './dtos/change-doctor-password.dto.js';
 import { PatientCases } from '../patient/entities/patient-cases.entity.js';
 import { randomUUID } from 'node:crypto';
 import { TestRequest } from './entities/test-request.entity.js';
@@ -8,6 +9,7 @@ import { CreateDoctorAdviceDto } from './dtos/create-doctor-advice.dto.js';
 import { UpdateDoctorAdviceDto } from './dtos/update-doctor-advice.dto.js';
 import {
   BadRequestException,
+  UnauthorizedException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -316,12 +318,14 @@ export class DoctorsService {
   }
 
   async createDoctorAdvice(dto: CreateDoctorAdviceDto, doctorId: number) {
+    await this.checkApprovedDoctor(doctorId);
     await this.checkCaseOwner(dto.case_id, doctorId);
     const advice = this.adviceRepo.create(dto);
     return await this.adviceRepo.save(advice);
   }
 
   async getAllDoctorAdvice(page: number, limit: number, doctorId: number) {
+    await this.checkApprovedDoctor(doctorId);
     const caseIds = await this.getAssignedCaseIds(doctorId);
     const [data, total] = await this.adviceRepo.findAndCount({
       where: { case_id: In(caseIds) },
@@ -342,6 +346,7 @@ export class DoctorsService {
   }
 
   async getDoctorAdviceById(id: number, doctorId: number): Promise<DoctorAdvice> {
+    await this.checkApprovedDoctor(doctorId);
     const advice = await this.adviceRepo.findOne({
       where: { advice_id: id },
     });
@@ -357,6 +362,7 @@ export class DoctorsService {
   }
 
   async updateDoctorAdvice(id: number, dto: UpdateDoctorAdviceDto, doctorId: number) {
+    await this.checkApprovedDoctor(doctorId);
     const advice = await this.getDoctorAdviceById(id, doctorId);
 
     if (advice.status !== 'DRAFT') {
@@ -376,6 +382,7 @@ export class DoctorsService {
   }
 
   async deleteDoctorAdvice(id: number, doctorId: number) {
+    await this.checkApprovedDoctor(doctorId);
     const advice = await this.getDoctorAdviceById(id, doctorId);
 
     if (advice.status !== 'DRAFT') {
@@ -398,6 +405,7 @@ export class DoctorsService {
 
   // Diagnostic center integration is still pending.
   async createTestRequest(dto: CreateTestRequestDto, doctorId: number) {
+    await this.checkApprovedDoctor(doctorId);
     await this.checkCaseOwner(dto.case_id, doctorId);
     const request = this.testRequestRepo.create({
       ...dto,
@@ -408,6 +416,7 @@ export class DoctorsService {
   }
 
   async getAllTestRequests(page: number, limit: number, doctorId: number) {
+    await this.checkApprovedDoctor(doctorId);
     const caseIds = await this.getAssignedCaseIds(doctorId);
     const [data, total] = await this.testRequestRepo.findAndCount({
       where: { case_id: In(caseIds) },
@@ -428,6 +437,7 @@ export class DoctorsService {
   }
 
   async getTestRequestById(id: number, doctorId: number): Promise<TestRequest> {
+    await this.checkApprovedDoctor(doctorId);
     const request = await this.testRequestRepo.findOne({
       where: { request_id: id },
     });
@@ -443,6 +453,7 @@ export class DoctorsService {
   }
 
   async updateTestRequest(id: number, dto: UpdateTestRequestDto, doctorId: number) {
+    await this.checkApprovedDoctor(doctorId);
     const request = await this.getTestRequestById(id, doctorId);
 
     if (request.status !== 'DRAFT') {
@@ -462,6 +473,7 @@ export class DoctorsService {
   }
 
   async deleteTestRequest(id: number, doctorId: number) {
+    await this.checkApprovedDoctor(doctorId);
     const request = await this.getTestRequestById(id, doctorId);
 
     if (request.status !== 'DRAFT') {
@@ -558,6 +570,73 @@ export class DoctorsService {
     return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
   }
 
+  private async checkApprovedDoctor(doctorId: number) {
+    const profile = await this.profileRepo.findOne({
+      where: { doctor_id: doctorId, verification_status: 'APPROVED' },
+    });
+    if (!profile) {
+      throw new ForbiddenException('Your doctor profile must be approved before consultation');
+    }
+  }
+
+  async getAssignedCases(doctorId: number, page: number, limit: number) {
+    await this.checkApprovedDoctor(doctorId);
+    const [data, total] = await this.caseRepo.findAndCount({
+      where: { doctorId },
+      order: { createdAt: 'DESC', caseId: 'ASC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+    return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+  }
+
+  async getAssignedCaseById(caseId: string, doctorId: number) {
+    await this.checkApprovedDoctor(doctorId);
+    await this.checkCaseOwner(caseId, doctorId);
+    const patientCase = await this.caseRepo.findOne({
+      where: { caseId, doctorId },
+      relations: { patient: true },
+      select: {
+        caseId: true, caseCode: true, doctorId: true, coordinatorId: true,
+        symptoms: true, duration: true, age: true, gender: true,
+        previousIllness: true, description: true, status: true, createdAt: true,
+        patient: { patientId: true, fullName: true },
+      },
+    });
+    if (!patientCase) {
+      throw new NotFoundException('Patient case not found');
+    }
+    return {
+      ...patientCase,
+      patient: {
+        patientId: patientCase.patient.patientId,
+        fullName: patientCase.patient.fullName,
+      },
+    };
+  }
+
+  async changePassword(doctorId: number, dto: ChangeDoctorPasswordDto) {
+    const doctor = await this.doctorRepo.findOne({
+      where: { doctor_id: doctorId },
+      select: { doctor_id: true, password: true },
+    });
+    if (!doctor || !(await bcrypt.compare(dto.current_password, doctor.password))) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+    if (await bcrypt.compare(dto.new_password, doctor.password)) {
+      throw new BadRequestException('New password must differ from the current password');
+    }
+    const password = await bcrypt.hash(dto.new_password, 10);
+    const result = await this.doctorRepo.update(
+      { doctor_id: doctorId, password: doctor.password },
+      { password },
+    );
+    if (!result.affected) {
+      throw new ConflictException('Password changed during this request; try again');
+    }
+    return { message: 'Password changed successfully' };
+  }
+
   private async checkCaseOwner(caseId: string, doctorId: number) {
     const patientCase = await this.caseRepo.findOne({
       where: { caseId },
@@ -580,6 +659,7 @@ export class DoctorsService {
   }
 
   async publishDoctorAdvice(id: number, doctorId: number) {
+    await this.checkApprovedDoctor(doctorId);
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
 
