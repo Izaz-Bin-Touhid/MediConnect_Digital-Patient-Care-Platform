@@ -1,6 +1,7 @@
 import { AdminsModule } from './admins/admins.module.js';
 import { AuthModule } from './auth/auth.module.js';
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
+import { LoggerMiddleware } from './common/middleware/logger.middleware.js';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { DatabaseModule } from './database/database.module.js';
@@ -24,4 +25,10 @@ import { PaymentsModule } from './payments/payments.module.js';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(LoggerMiddleware)
+      .forRoutes({ path: '{*path}', method: RequestMethod.ALL });
+  }
+}

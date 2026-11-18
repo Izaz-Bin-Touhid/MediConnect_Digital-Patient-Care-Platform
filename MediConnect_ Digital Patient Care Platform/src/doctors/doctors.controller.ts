@@ -140,6 +140,16 @@ export class DoctorsController {
     return await this.doctorsService.getDoctorAdviceById(id, req.user.doctor_id);
   }
 
+  @Post('advice/:id/publish')
+  @UseGuards(JwtGuards, RolesGuard)
+  @Roles('DOCTOR')
+  async publishDoctorAdvice(
+    @Req() req: DoctorRequest,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return await this.doctorsService.publishDoctorAdvice(id, req.user.doctor_id);
+  }
+
   @Patch('advice/:id')
   @UseGuards(JwtGuards, RolesGuard)
   @Roles('DOCTOR')

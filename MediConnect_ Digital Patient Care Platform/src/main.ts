@@ -1,3 +1,4 @@
+import { DatabaseExceptionFilter } from './common/filters/database-exception.filter.js';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module.js';
@@ -12,6 +13,8 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
+
+  app.useGlobalFilters(new DatabaseExceptionFilter());
 
   await app.listen(process.env.PORT ?? 3000);
 }
