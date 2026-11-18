@@ -44,6 +44,64 @@ $ npm run start:dev
 $ npm run start:prod
 ```
 
+## Coordinator API
+
+Copy `.env.example` to `.env`, configure a local PostgreSQL database and set
+`JWT_SECRET` to a random secret of at least 32 bytes. Create the PostgreSQL
+database, then build and run the migrations before starting the app.
+
+```powershell
+npm.cmd run build
+npm.cmd run migration:run
+npm.cmd run start:dev
+```
+
+Swagger UI is available at `/docs`. Use **Authorize** with an access token
+for protected routes. Add `X-Response-Envelope: true` to opt into a
+`{ "data": ... }` response body.
+
+If your existing database was created with schema synchronization, first run
+`npm.cmd exec -- typeorm schema:log -d dist/database/data-source.js` against it.
+If TypeORM reports that the schema already matches and only the initial
+migration is pending, record that migration with
+`npm.cmd run migration:run -- --fake`. If there are schema differences, use a
+fresh demo database or review an upgrade migration for the existing data.
+
+The audit module logs authenticated write requests. The optional mail module
+accepts a configured JSON delivery endpoint through `MAIL_DELIVERY_URL` and
+`MAIL_FROM`. Coordinator approval does not call it.
+
+For a local demo, populate `ADMIN`, `DOCTOR`, `PATIENT` and
+`DIAGNOSTIC_CENTER` with test accounts before signing in. Store lowercase
+emails and bcrypt hashes in their `password` columns. For the case workflow,
+also populate `PATIENT_CASE` and its `PAYMENT` with
+`payment_status = 'paid'`. The case's `doctor_id` uses the existing doctor's
+ID as a string.
+
+Use `POST /auth/login` with `email`, `password` and `role`.
+Coordinator is the default role. Send the returned access token as
+`Authorization: Bearer <token>` on protected routes. All paths in the table
+are relative to `/coordinator`. Lists accept `page` and `limit`.
+
+| Role | Workflow |
+| --- | --- |
+| Coordinator applicant | Submit `fullName` and `phone` to `POST /applications`. The response includes an `applicationId`. |
+| Admin | List pending applications with `GET /applications`. Approve one with `POST /applications/:applicationId/approve` using the assigned `email`, `password` and `staffId`. Give the credentials to the coordinator. Assign a paid case with `PATCH /cases/:caseId/assignment` using `coordinatorId`. |
+| Coordinator | After login, update `fullName`, `phone` or `email` at `PATCH /profile`. An updated email becomes the login email. |
+| Doctor | Submit `testType` and `notes` to `POST /cases/:caseId/test-requests`. Read the decision and forwarded report at `GET /test-requests/:requestId`. |
+| Coordinator | List assigned tasks at `GET /tasks`. Record contact at `POST /tasks/:taskId/activities` and set `decision` to `accepted` or `declined` at `PATCH /tasks/:taskId/decision`. |
+| Patient | Find the request and center via `GET /patient/test-requests` and `GET /diagnostic-centers`. Select the center at `PATCH /test-requests/:requestId/center` using `centerId`. |
+| Coordinator | Arrange the accepted test at `PATCH /tasks/:taskId/arrange`. Read or review the report at `GET` or `PATCH /tasks/:taskId/report` using `checkStatus` for review. Forward a verified report at `PATCH /tasks/:taskId/report/forward`. |
+| Diagnostic center | List arranged requests at `GET /center/test-requests`. Submit `result` and a `reportFile` reference to `POST /test-requests/:requestId/report`. |
+| Coordinator | Create a follow-up at `POST /follow-ups` with `caseId`, `followupDate` (YYYY-MM-DD), `followupTime` (HH:mm) and `note`. Create a reminder under `/follow-ups/:followupId/reminders`, then update its `responseStatus` to `sent` to publish it to the patient's dashboard. |
+| Patient | Read published reminders at `GET /patient/reminders`. |
+
+Coordinators can change their password at `PATCH /auth/profile/password` and
+log out at `POST /auth/logout`. Both revoke existing sessions for that account.
+The original `/coordinator` authentication URLs are supported as aliases.
+Diagnostic report submission stores the report reference supplied by the
+center. Reminder publishing is in-app.
+
 ## Run tests
 
 ```bash
