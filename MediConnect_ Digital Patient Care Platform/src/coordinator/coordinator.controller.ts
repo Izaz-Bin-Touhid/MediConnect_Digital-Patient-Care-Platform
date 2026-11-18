@@ -77,6 +77,31 @@ export class CoordinatorApplicationController {
   }
 }
 
+@ApiTags('Admins')
+@Controller('admins/coordinator-applications')
+@ApiBearerAuth()
+@UseGuards(JwtGuards, RolesGuard)
+@Roles('ADMIN')
+export class AdminCoordinatorApplicationsController {
+  constructor(private readonly coordinatorService: CoordinatorService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'List pending coordinator applications for Admin review' })
+  async listApplications(@Query() page: PaginationDto) {
+    return await this.coordinatorService.listApplications(page);
+  }
+
+  @Patch(':applicationId/approve')
+  @ApiOperation({ summary: 'Approve a coordinator application and create the coordinator account' })
+  async approve(
+    @CurrentUser() actor: AuthActor,
+    @Param('applicationId', ParseUUIDPipe) applicationId: string,
+    @Body() dto: ApproveCoordinatorApplicationDto,
+  ) {
+    return await this.coordinatorService.approveApplication(actor.sub, applicationId, dto);
+  }
+}
+
 @ApiTags('Coordinator')
 @Controller('coordinator')
 @ApiBearerAuth()

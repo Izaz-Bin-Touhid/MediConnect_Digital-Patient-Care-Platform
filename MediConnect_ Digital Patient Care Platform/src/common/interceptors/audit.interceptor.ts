@@ -32,6 +32,7 @@ export class AuditInterceptor implements NestInterceptor {
       DoctorsController: /Profile/.test(handler) ? 'DOCTOR_PROFILE' : /Advice/.test(handler) ? 'DOCTOR_ADVICE' : /TestRequest/.test(handler) ? 'TEST_REQUEST' : 'DOCTOR',
       AdminsController: /Doctor/.test(handler) ? 'DOCTOR_PROFILE' : 'ADMIN',
       CoordinatorApplicationController: 'COORDINATOR_APPLICATION',
+      AdminCoordinatorApplicationsController: 'COORDINATOR_APPLICATION',
       CoordinatorController: /Coordinator/.test(handler) ? 'FOLLOWUP_COORDINATOR' : /Reminder/.test(handler) ? 'REMINDER' : /FollowUp/.test(handler) ? 'FOLLOWUP_SCHEDULE' : /Report/.test(handler) ? 'DIAGNOSTIC_REPORT' : /Task|Contact|Decision|Activities|arrangeTest/.test(handler) ? 'COORDINATION_TASK' : /Case/.test(handler) ? 'PATIENT_CASE' : 'TEST_REQUEST',
       PaymentsController: 'PAYMENT',
     };

@@ -8,6 +8,25 @@ export class MailService {
 
   constructor(private readonly config: ConfigService) {}
 
+  async notifyCoordinatorApproval(to: string): Promise<void> {
+    if (this.config.get<string>('MAIL_ENABLED') !== 'true') return;
+    try {
+      const port = Number(this.config.get<string>('MAIL_PORT'));
+      const transport = createTransport({
+        host: this.config.getOrThrow<string>('MAIL_HOST'), port, secure: port === 465,
+        auth: { user: this.config.getOrThrow<string>('MAIL_USER'), pass: this.config.getOrThrow<string>('MAIL_PASSWORD') },
+        connectionTimeout: 5000, greetingTimeout: 5000, socketTimeout: 10000,
+      });
+      await transport.sendMail({
+        from: this.config.getOrThrow<string>('MAIL_FROM'), to,
+        subject: 'Your MediConnect Coordinator account is ready',
+        text: 'Your Coordinator application has been approved. Sign in using the credentials provided by your administrator.',
+      });
+    } catch {
+      this.logger.warn('Coordinator approval email could not be delivered');
+    }
+  }
+
   async sendDoctorVerification(to: string, name: string, status: 'APPROVED' | 'REJECTED'): Promise<boolean> {
     if (this.config.get<string>('MAIL_ENABLED') !== 'true') {
       this.logger.warn('Verification email not sent: MAIL_ENABLED is false');

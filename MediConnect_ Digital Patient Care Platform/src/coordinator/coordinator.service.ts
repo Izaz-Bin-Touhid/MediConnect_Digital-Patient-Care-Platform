@@ -1,4 +1,6 @@
 import { randomBytes } from 'node:crypto';
+import { AuditService } from '../audit/audit.service.js';
+import { MailService } from '../mail/mail.service.js';
 import {
   BadRequestException,
   ConflictException,
@@ -66,6 +68,8 @@ export class CoordinatorService {
     @InjectRepository(Reminder)
     private readonly reminderRepo: Repository<Reminder>,
     private readonly dataSource: DataSource,
+    private readonly auditService: AuditService,
+    private readonly mailService: MailService,
     private readonly authService: AuthService,
   ) {}
 
@@ -73,8 +77,8 @@ export class CoordinatorService {
     dto: CreateCoordinatorApplicationDto,
   ): Promise<Pick<CoordinatorApplication, 'applicationId'>> {
     try {
-      const application = await this.applicationRepo.save(
-        this.applicationRepo.create(dto),
+      const application = await this.auditService.transaction((manager) =>
+        manager.save(this.applicationRepo.create(dto)),
       );
       return { applicationId: application.applicationId };
     } catch (error) {
@@ -104,30 +108,41 @@ export class CoordinatorService {
   ): Promise<Omit<CoordinatorProfile, 'password'>> {
     try {
       const password = await this.authService.hashPassword(dto.password);
-      return await this.dataSource.transaction(async (manager) => {
-        const application = await manager.findOne(CoordinatorApplication, {
-          where: { applicationId },
-          lock: { mode: 'pessimistic_write' },
-        });
-        if (!application) {
-          throw new NotFoundException('Coordinator application not found');
-        }
-        if (application.approvedAt) {
-          throw new ConflictException(
-            'Coordinator application has already been approved',
-          );
-        }
+      const coordinator = await this.auditService.transaction(
+        async (manager) => {
+          const application = await manager.findOne(CoordinatorApplication, {
+            where: { applicationId },
+            lock: { mode: 'pessimistic_write' },
+          });
+          if (!application) {
+            throw new NotFoundException('Coordinator application not found');
+          }
+          if (application.approvedAt) {
+            throw new ConflictException(
+              'Coordinator application has already been approved',
+            );
+          }
 
-        const { password: _password, ...profile } = await this.saveCoordinator(
-          manager.getRepository(CoordinatorProfile),
-          adminId,
-          { ...dto, fullName: application.fullName, phone: application.phone },
-          password,
-        );
-        application.approvedAt = new Date();
-        await manager.save(application);
-        return profile;
-      });
+          const { password: _password, ...profile } =
+            await this.saveCoordinator(
+              manager.getRepository(CoordinatorProfile),
+              adminId,
+              {
+                email: dto.email,
+                password: dto.password,
+                staffId: dto.staffId,
+                fullName: application.fullName,
+                phone: application.phone,
+              },
+              password,
+            );
+          application.approvedAt = new Date();
+          await manager.save(application);
+          return profile;
+        },
+      );
+      await this.mailService.notifyCoordinatorApproval(coordinator.email);
+      return coordinator;
     } catch (error) {
       return this.handleDatabaseError(error);
     }
@@ -139,12 +154,15 @@ export class CoordinatorService {
   ): Promise<Omit<CoordinatorProfile, 'password'>> {
     try {
       const password = await this.authService.hashPassword(dto.password);
-      const { password: _password, ...saved } = await this.saveCoordinator(
-        this.coordinatorRepo,
-        adminId,
-        dto,
-        password,
-      );
+      const { password: _password, ...saved } =
+        await this.auditService.transaction((manager) =>
+          this.saveCoordinator(
+            manager.getRepository(CoordinatorProfile),
+            adminId,
+            dto,
+            password,
+          ),
+        );
       return saved;
     } catch (error) {
       return this.handleDatabaseError(error);
@@ -187,7 +205,7 @@ export class CoordinatorService {
         );
       }
 
-      return await this.dataSource.transaction(async (manager) => {
+      return await this.auditService.transaction(async (manager) => {
         const profile = await manager.findOne(CoordinatorProfile, {
           where: { coordinatorId },
           lock: { mode: 'pessimistic_write' },
@@ -208,7 +226,9 @@ export class CoordinatorService {
 
   async deleteCoordinator(coordinatorId: string): Promise<void> {
     try {
-      const result = await this.coordinatorRepo.delete({ coordinatorId });
+      const result = await this.auditService.transaction((manager) =>
+        manager.delete(CoordinatorProfile, { coordinatorId }),
+      );
       if (!result.affected) {
         throw new NotFoundException('Coordinator not found');
       }
@@ -259,7 +279,7 @@ export class CoordinatorService {
     coordinatorId: string,
   ): Promise<PatientCases> {
     try {
-      return await this.dataSource.transaction(async (manager) => {
+      return await this.auditService.transaction(async (manager) => {
         const patientCase = await this.lockCase(manager, caseId);
         await this.assignPaidCase(manager, patientCase, coordinatorId);
         const requests = await manager.findBy(TestRequest, { case_id: caseId });
@@ -290,7 +310,7 @@ export class CoordinatorService {
     dto: RequestDiagnosticTestDto,
   ): Promise<TestRequest> {
     try {
-      return await this.dataSource.transaction(async (manager) => {
+      return await this.auditService.transaction(async (manager) => {
         const patientCase = await this.lockCase(manager, caseId);
         if (patientCase.doctorId !== Number(doctorId)) {
           throw new NotFoundException('Case not found');
@@ -323,7 +343,7 @@ export class CoordinatorService {
 
   async createTask(dto: CreateTaskDto): Promise<CoordinationTask> {
     try {
-      return await this.dataSource.transaction(async (manager) => {
+      return await this.auditService.transaction(async (manager) => {
         const request = await manager.findOneBy(TestRequest, {
           request_id: dto.requestId,
         });
@@ -498,7 +518,7 @@ export class CoordinatorService {
     centerId: string,
   ): Promise<TestRequest> {
     try {
-      return await this.dataSource.transaction(async (manager) => {
+      return await this.auditService.transaction(async (manager) => {
         const request = await this.lockRequest(manager, requestId);
         const ownsCase = await manager.existsBy(PatientCases, {
           caseId: request.case_id,
@@ -612,7 +632,7 @@ export class CoordinatorService {
     dto: SubmitReportDto,
   ): Promise<DiagnosticReport> {
     try {
-      return await this.dataSource.transaction(async (manager) => {
+      return await this.auditService.transaction(async (manager) => {
         const request = await this.lockRequest(manager, requestId);
         if (request.center_id !== centerId) {
           throw new NotFoundException('Test request not found');
@@ -751,16 +771,17 @@ export class CoordinatorService {
     dto: CreateFollowUpDto,
   ): Promise<FollowUpSchedule> {
     try {
-      const manager = this.dataSource.manager;
-      await this.assignedCase(manager, coordinatorId, dto.caseId);
-      const followup = manager.create(FollowUpSchedule, {
-        caseId: dto.caseId,
-        followupDate: dto.followupDate,
-        followupTime: dto.followupTime,
-        note: dto.note,
-        followupCode: `FU-${this.shortId()}`,
+      return await this.auditService.transaction(async (manager) => {
+        await this.assignedCase(manager, coordinatorId, dto.caseId);
+        const followup = manager.create(FollowUpSchedule, {
+          caseId: dto.caseId,
+          followupDate: dto.followupDate,
+          followupTime: dto.followupTime,
+          note: dto.note,
+          followupCode: `FU-${this.shortId()}`,
+        });
+        return await manager.save(followup);
       });
-      return await manager.save(followup);
     } catch (error) {
       return this.handleDatabaseError(error);
     }
@@ -1126,7 +1147,7 @@ export class CoordinatorService {
       request: TestRequest,
     ) => Promise<T>,
   ) {
-    return this.dataSource.transaction(async (manager) => {
+    return this.auditService.transaction(async (manager) => {
       const task = await manager.findOne(CoordinationTask, {
         where: { taskId },
         lock: { mode: 'pessimistic_write' },
@@ -1170,7 +1191,7 @@ export class CoordinatorService {
     followupId: string,
     action: (manager: EntityManager, followup: FollowUpSchedule) => Promise<T>,
   ) {
-    return this.dataSource.transaction(async (manager) =>
+    return this.auditService.transaction(async (manager) =>
       action(
         manager,
         await this.findFollowUp(manager, coordinatorId, followupId, true),
