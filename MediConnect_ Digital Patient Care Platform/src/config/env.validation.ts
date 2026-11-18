@@ -18,6 +18,11 @@ export function validateEnvironment(config: Record<string, unknown>) {
     }
   }
 
+  const databaseSsl = config.DB_SSL ?? 'false';
+  if (!['true', 'false'].includes(String(databaseSsl))) {
+    errors.push('DB_SSL must be true or false');
+  }
+
   const secret = config.JWT_SECRET;
   if (typeof secret !== 'string' || secret.trim().length < 32) {
     errors.push('JWT_SECRET must contain at least 32 non-padding characters');
@@ -46,6 +51,7 @@ export function validateEnvironment(config: Record<string, unknown>) {
 
   return {
     ...config,
+    DB_SSL: databaseSsl,
     MAIL_ENABLED: mailEnabled,
     PORT: Number(port),
     DB_PORT: Number(databasePort),

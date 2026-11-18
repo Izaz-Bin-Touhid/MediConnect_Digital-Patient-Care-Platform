@@ -59,6 +59,20 @@ export class PatientCasesController {
     return await this.patientCasesService.getMyCases(req.user.id, pagination);
   }
 
+  @Get(':id/advice')
+  @UseGuards(JwtGuards, RolesGuard)
+  @Roles('patient')
+  @ApiOperation({ summary: 'View published doctor advice for your own case' })
+  @ApiResponse({ status: 200, description: 'Published advice returned with pagination' })
+  @ApiResponse({ status: 404, description: 'Case not found or not owned by patient' })
+  async getPublishedAdvice(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Query() pagination: PaginationDto,
+  ) {
+    return await this.patientCasesService.getPublishedAdvice(req.user.id, id, pagination);
+  }
+
   @UseGuards(JwtGuards, RolesGuard)
   @Roles('patient')
   @Get(':id')

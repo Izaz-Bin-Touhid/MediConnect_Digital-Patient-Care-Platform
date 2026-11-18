@@ -1,3 +1,4 @@
+import { DoctorAdvice } from '../doctors/entities/doctor-advice.entity.js';
 import {
   BadRequestException,
   ConflictException,
@@ -21,7 +22,25 @@ export class PatientCasesService {
     @InjectRepository(Doctors)
     private readonly doctorsRepo: Repository<Doctors>,
     private readonly patientsService: PatientsService,
+    @InjectRepository(DoctorAdvice)
+    private readonly adviceRepo: Repository<DoctorAdvice>,
   ) {}
+
+  async getPublishedAdvice(patientId: string, caseId: string, pagination: PaginationDto) {
+    await this.getMyCaseById(patientId, caseId);
+    const { page, limit } = pagination;
+    const [data, total] = await this.adviceRepo.findAndCount({
+      where: {
+        case_id: caseId,
+        status: 'PUBLISHED',
+        patientCase: { patient: { patientId } },
+      },
+      order: { advice_date: 'DESC', advice_id: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
+  }
 
   async createPatientCase(
     patientId: string,

@@ -1,3 +1,5 @@
+import { CoordinationTask } from '../coordinator/entities/coordination-task.entity.js';
+import { CoordinationActivity } from '../coordinator/entities/coordination-activity.entity.js';
 import { Payments } from '../patient/entities/payments.entity.js';
 import { ChangeDoctorPasswordDto } from './dtos/change-doctor-password.dto.js';
 import { PatientCases } from '../patient/entities/patient-cases.entity.js';
@@ -404,16 +406,36 @@ export class DoctorsService {
     };
   }
 
-  // Diagnostic center integration is still pending.
+  // Assigned requests are handed to the existing Coordinator workflow.
   async createTestRequest(dto: CreateTestRequestDto, doctorId: number) {
     await this.checkApprovedDoctor(doctorId);
     await this.checkCaseOwner(dto.case_id, doctorId);
-    const request = this.testRequestRepo.create({
-      ...dto,
-      request_code: `TR-${randomUUID()}`,
+    return await this.dataSource.transaction(async (manager) => {
+      const patientCase = await manager.findOne(PatientCases, {
+        where: { caseId: dto.case_id, doctorId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!patientCase) {
+        throw new NotFoundException('Patient case not found');
+      }
+      const request = await manager.save(manager.create(TestRequest, {
+        ...dto,
+        request_code: `TR-${randomUUID()}`,
+        status: patientCase.coordinatorId ? 'requested' : 'DRAFT',
+      }));
+      if (patientCase.coordinatorId) {
+        const task = await manager.save(manager.create(CoordinationTask, {
+          requestId: request.request_id,
+          note: 'Doctor requested a diagnostic test',
+        }));
+        await manager.save(manager.create(CoordinationActivity, {
+          taskId: task.taskId,
+          coordinatorId: patientCase.coordinatorId,
+          action: 'task_created',
+        }));
+      }
+      return request;
     });
-
-    return await this.testRequestRepo.save(request);
   }
 
   async getAllTestRequests(page: number, limit: number, doctorId: number) {
