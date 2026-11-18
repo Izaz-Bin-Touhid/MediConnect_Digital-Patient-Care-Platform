@@ -1,0 +1,128 @@
+{
+  "info": {
+    "name": "MediConnect Admin Coordinator",
+    "description": "Set adminPassword locally in Postman before sending an Admin request. Each request signs in to the same server before sending. Set applicationId only if you intend to approve that application.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "adminEmail",
+      "value": "admin@example.com"
+    },
+    {
+      "key": "adminPassword",
+      "value": ""
+    },
+    {
+      "key": "applicationId",
+      "value": ""
+    },
+    {
+      "key": "coordinatorEmail",
+      "value": ""
+    },
+    {
+      "key": "coordinatorPassword",
+      "value": ""
+    },
+    {
+      "key": "staffId",
+      "value": ""
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const baseUrl = String(pm.variables.get('baseUrl') || '').trim().replace(/\\/+$/, '');",
+          "const email = pm.variables.get('adminEmail');",
+          "const password = pm.variables.get('adminPassword');",
+          "if (!baseUrl || !email || !password) {",
+          "  pm.execution.skipRequest();",
+          "  throw new Error('Set baseUrl, adminEmail and adminPassword before sending.');",
+          "}",
+          "pm.variables.set('requestBaseUrl', baseUrl);",
+          "let login;",
+          "try {",
+          "  login = await pm.sendRequest({",
+          "    url: `${baseUrl}/auth/login`,",
+          "    method: 'POST',",
+          "    header: { 'Content-Type': 'application/json' },",
+          "    body: { mode: 'raw', raw: JSON.stringify({ email, password, role: 'admin' }) },",
+          "  });",
+          "  if (login.code !== 200) throw new Error(`Admin login returned HTTP ${login.code}.`);",
+          "  const { accessToken } = login.json();",
+          "  if (!accessToken) throw new Error('Admin login did not return an access token.');",
+          "  pm.request.headers.upsert({ key: 'Authorization', value: `Bearer ${accessToken}` });",
+          "} catch (error) {",
+          "  pm.execution.skipRequest();",
+          "  throw error;",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "List pending coordinator applications",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "url": "{{requestBaseUrl}}/admins/coordinator-applications"
+      }
+    },
+    {
+      "name": "Approve a coordinator application",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const applicationId = pm.variables.get('applicationId');",
+              "if (!/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(applicationId || '')) {",
+              "  pm.execution.skipRequest();",
+              "  throw new Error('Set applicationId to the UUID of the pending application.');",
+              "}",
+              "if (['coordinatorEmail', 'coordinatorPassword', 'staffId'].some(key => !pm.variables.get(key))) {",
+              "  pm.execution.skipRequest();",
+              "  throw new Error('Set coordinatorEmail, coordinatorPassword and staffId before approving.');",
+              "}",
+              "pm.variables.set('approvalJson', JSON.stringify({ email: pm.variables.get('coordinatorEmail'), password: pm.variables.get('coordinatorPassword'), staffId: pm.variables.get('staffId') }));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{{approvalJson}}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{requestBaseUrl}}/admins/coordinator-applications/{{applicationId}}/approve"
+      }
+    }
+  ]
+}

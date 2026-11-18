@@ -1,10 +1,13 @@
 import { Module } from '@nestjs/common';
+import { AuditModule } from '../audit/audit.module.js';
+import { MailModule } from '../mail/mail.module.js';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth/auth.module.js';
 import { TestRequest } from '../doctors/entities/test-request.entity.js';
 import { PatientCases } from '../patient/entities/patient-cases.entity.js';
 import {
   CoordinatorApplicationController,
+  AdminCoordinatorApplicationsController,
   CoordinatorController,
 } from './coordinator.controller.js';
 import { CoordinatorService } from './coordinator.service.js';
@@ -21,6 +24,8 @@ import { Reminder } from './entities/reminder.entity.js';
 
 @Module({
   imports: [
+    AuditModule,
+    MailModule,
     AuthModule,
     TypeOrmModule.forFeature([
       CoordinatorProfile,
@@ -35,7 +40,7 @@ import { Reminder } from './entities/reminder.entity.js';
       Reminder,
     ]),
   ],
-  controllers: [CoordinatorApplicationController, CoordinatorController],
+  controllers: [CoordinatorApplicationController, AdminCoordinatorApplicationsController, CoordinatorController],
   providers: [CoordinatorService, JwtGuards, RolesGuard],
   exports: [CoordinatorService],
 })
