@@ -6,7 +6,7 @@ import { PassportModule } from '@nestjs/passport';
 import { DoctorsModule } from '../doctors/doctors.module.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
-import { JwtGuards } from './jwtGuards.js';
+import { JwtGuards } from '../common/guards/jwt-auth.guard.js';
 import { JwtStrategy } from './jwtStrategy.strategy.js';
 
 @Module({
@@ -19,9 +19,6 @@ import { JwtStrategy } from './jwtStrategy.strategy.js';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
         const secret = config.getOrThrow<string>('JWT_SECRET');
-        if (secret.length < 32) {
-          throw new Error('JWT_SECRET must contain at least 32 characters');
-        }
         return { secret, signOptions: { expiresIn: '1h', algorithm: 'HS256' } };
       },
     }),

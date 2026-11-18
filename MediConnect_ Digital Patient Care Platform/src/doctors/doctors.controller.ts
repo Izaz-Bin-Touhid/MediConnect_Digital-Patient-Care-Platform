@@ -1,8 +1,8 @@
-import { Roles } from '../auth/roles/roles.decorator.js';
-import { RolesGuard } from '../auth/roles/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
 import type { Request } from 'express';
 import type { Doctors } from './entities/doctors.entity.js';
-import { JwtGuards } from '../auth/jwtGuards.js';
+import { JwtGuards } from '../common/guards/jwt-auth.guard.js';
 import { CreateTestRequestDto } from './dtos/create-test-request.dto.js';
 import { UpdateTestRequestDto } from './dtos/update-test-request.dto.js';
 import { CreateDoctorAdviceDto } from './dtos/create-doctor-advice.dto.js';

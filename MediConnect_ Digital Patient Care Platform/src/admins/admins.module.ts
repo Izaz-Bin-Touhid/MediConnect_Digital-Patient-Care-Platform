@@ -2,14 +2,14 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Admins } from './entities/admins.entity.js';
 import { DoctorProfile } from '../doctors/entities/doctor-profile.entity.js';
-import { AdminsController } from './admins.controller.js';
+import { AdminsController, AdminSetupController } from './admins.controller.js';
 import { AdminsService } from './admins.service.js';
-import { JwtGuards } from '../auth/jwtGuards.js';
-import { RolesGuard } from '../auth/roles/roles.guard.js';
+import { JwtGuards } from '../common/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Admins, DoctorProfile])],
-  controllers: [AdminsController],
+  controllers: [AdminsController, AdminSetupController],
   providers: [AdminsService, JwtGuards, RolesGuard],
   exports: [AdminsService],
 })

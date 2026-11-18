@@ -1,5 +1,6 @@
+import { CreateAdminDto } from './dtos/create-admin.dto.js';
 import {
-  BadRequestException, Body, Controller, DefaultValuePipe, Get,
+  BadRequestException, Body, Controller, DefaultValuePipe, Get, Headers, Post,
   Param, ParseIntPipe, Patch, Query, Req, UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
@@ -7,9 +8,9 @@ import type { Admins } from './entities/admins.entity.js';
 import { AdminsService } from './admins.service.js';
 import { VerifyDoctorDto } from './dtos/verify-doctor.dto.js';
 import { UpdateAdminDto } from './dtos/update-admin.dto.js';
-import { JwtGuards } from '../auth/jwtGuards.js';
-import { Roles } from '../auth/roles/roles.decorator.js';
-import { RolesGuard } from '../auth/roles/roles.guard.js';
+import { JwtGuards } from '../common/guards/jwt-auth.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
 
 type AdminRequest = Request & { user: Admins & { role: 'ADMIN' } };
 
@@ -18,6 +19,11 @@ type AdminRequest = Request & { user: Admins & { role: 'ADMIN' } };
 @Roles('ADMIN')
 export class AdminsController {
   constructor(private readonly adminsService: AdminsService) {}
+
+  @Post()
+  async createAdmin(@Body() dto: CreateAdminDto) {
+    return await this.adminsService.createAdmin(dto);
+  }
 
   @Get('me')
   getOwnProfile(@Req() req: AdminRequest) {
@@ -57,5 +63,19 @@ export class AdminsController {
     @Body() dto: VerifyDoctorDto,
   ) {
     return await this.adminsService.verifyDoctor(id, req.user.admin_id, dto);
+  }
+}
+
+// This controller has setup-key access, not public Admin registration.
+@Controller('admins/setup')
+export class AdminSetupController {
+  constructor(private readonly adminsService: AdminsService) {}
+
+  @Post()
+  async setupFirstAdmin(
+    @Body() dto: CreateAdminDto,
+    @Headers('x-admin-setup-key') setupKey?: string,
+  ) {
+    return await this.adminsService.setupFirstAdmin(dto, setupKey);
   }
 }

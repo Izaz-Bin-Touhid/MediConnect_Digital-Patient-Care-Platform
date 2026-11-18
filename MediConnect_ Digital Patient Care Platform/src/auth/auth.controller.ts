@@ -2,7 +2,7 @@ import { Body, Controller, Get, HttpCode, Post, Req, UseGuards } from '@nestjs/c
 import type { Request } from 'express';
 import { AuthService } from './auth.service.js';
 import { LoginDto } from './dtos/login.dto.js';
-import { JwtGuards } from './jwtGuards.js';
+import { JwtGuards } from '../common/guards/jwt-auth.guard.js';
 
 @Controller('auth')
 export class AuthController {

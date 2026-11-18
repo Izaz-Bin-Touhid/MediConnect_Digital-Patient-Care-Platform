@@ -1,5 +1,5 @@
-import { RolesGuard } from '../auth/roles/roles.guard.js';
-import { JwtGuards } from '../auth/jwtGuards.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { JwtGuards } from '../common/guards/jwt-auth.guard.js';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
