@@ -8,6 +8,11 @@ export function validateEnvironment(config: Record<string, unknown>) {
     }
   }
 
+  const databaseSsl = config.DB_SSL ?? 'false';
+  if (!['true', 'false'].includes(String(databaseSsl))) {
+    errors.push('DB_SSL must be true or false');
+  }
+
   const port = config.PORT ?? '3000';
   const databasePort = config.DB_PORT;
 
@@ -47,6 +52,7 @@ export function validateEnvironment(config: Record<string, unknown>) {
   return {
     ...config,
     MAIL_ENABLED: mailEnabled,
+    DB_SSL: databaseSsl,
     PORT: Number(port),
     DB_PORT: Number(databasePort),
   };

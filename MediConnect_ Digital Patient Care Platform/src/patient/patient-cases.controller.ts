@@ -61,6 +61,21 @@ export class PatientCasesController {
 
   @UseGuards(JwtGuards, RolesGuard)
   @Roles('patient')
+  @Get(':id/advice')
+  @ApiOperation({ summary: 'View published doctor advice for an own patient case' })
+  @ApiResponse({ status: 200, description: 'Published advice returned with pagination' })
+  @ApiResponse({ status: 404, description: 'Case not found or not owned by patient' })
+  @ApiResponse({ status: 401, description: 'Missing or invalid JWT' })
+  async getPublishedAdvice(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Query() pagination: PaginationDto,
+  ) {
+    return await this.patientCasesService.getPublishedAdvice(req.user.id, id, pagination);
+  }
+
+  @UseGuards(JwtGuards, RolesGuard)
+  @Roles('patient')
   @Get(':id')
   @ApiOperation({ summary: 'Get one of the logged-in patient own cases' })
   @ApiResponse({ status: 200, description: 'Patient case returned' })

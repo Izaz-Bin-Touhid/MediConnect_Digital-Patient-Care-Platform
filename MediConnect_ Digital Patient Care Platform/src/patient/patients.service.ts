@@ -5,7 +5,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { QueryFailedError, Repository } from 'typeorm';
+import { MoreThan, MoreThanOrEqual, QueryFailedError, Repository } from 'typeorm';
+import { PaginationDto } from '../common/dtos/pagination.dto.js';
+import { FollowUpSchedule } from '../coordinator/entities/follow-up-schedule.entity.js';
+import { PatientCases } from './entities/patient-cases.entity.js';
+import { Payments } from './entities/payments.entity.js';
+
 import { Patients } from './entities/patients.entity.js';
 import { CreatePatientDto } from './dtos/create-patient.dto.js';
 import { UpdatePatientDto } from './dtos/update-patient.dto.js';
@@ -15,7 +20,88 @@ export class PatientsService {
   constructor(
     @InjectRepository(Patients)
     private readonly patientsRepo: Repository<Patients>,
+    @InjectRepository(PatientCases)
+    private readonly casesRepo: Repository<PatientCases>,
+    @InjectRepository(Payments)
+    private readonly paymentsRepo: Repository<Payments>,
+    @InjectRepository(FollowUpSchedule)
+    private readonly followUpRepo: Repository<FollowUpSchedule>,
   ) {}
+
+  async getMyFollowUps(patientId: string, pagination: PaginationDto) {
+    const { page, limit } = pagination;
+    const [data, total] = await this.followUpRepo.findAndCount({
+      where: { patientCase: { patient: { patientId } } },
+      order: { followupDate: 'ASC', followupTime: 'ASC', followupId: 'ASC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
+  }
+
+  async getMyFollowUpById(patientId: string, followupId: string) {
+    const followup = await this.followUpRepo.findOne({
+      where: { followupId, patientCase: { patient: { patientId } } },
+    });
+    if (!followup) {
+      throw new NotFoundException('Follow-up schedule not found');
+    }
+    return followup;
+  }
+
+  async getMyDashboard(patientId: string) {
+    const totalCases = await this.casesRepo.count({
+      where: { patient: { patientId } },
+    });
+    const draftCases = await this.casesRepo.count({
+      where: { patient: { patientId }, status: 'draft' },
+    });
+    const submittedCases = await this.casesRepo.count({
+      where: { patient: { patientId }, status: 'submitted' },
+    });
+    const adviceGivenCases = await this.casesRepo.count({
+      where: { patient: { patientId }, status: 'ADVICE_GIVEN' },
+    });
+    const payments = await this.paymentsRepo.find({
+      where: { patientCase: { patient: { patientId } }, paymentStatus: 'success' },
+      select: { paymentId: true, amount: true },
+    });
+    let totalPaidInPaisa = 0;
+    for (const payment of payments) {
+      totalPaidInPaisa += Math.round(Number(payment.amount) * 100);
+    }
+
+    const localTime = new Intl.DateTimeFormat('sv-SE', {
+      timeZone: 'Asia/Dhaka',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
+    }).format(new Date());
+    const [today, time] = localTime.split(' ');
+    const upcomingFollowUps = await this.followUpRepo.count({
+      where: [
+        {
+          patientCase: { patient: { patientId } },
+          status: 'scheduled',
+          followupDate: MoreThan(today),
+        },
+        {
+          patientCase: { patient: { patientId } },
+          status: 'scheduled',
+          followupDate: today,
+          followupTime: MoreThanOrEqual(time),
+        },
+      ],
+    });
+    return {
+      totalCases,
+      draftCases,
+      submittedCases,
+      adviceGivenCases,
+      successfulPayments: payments.length,
+      totalPaidAmount: (totalPaidInPaisa / 100).toFixed(2),
+      upcomingFollowUps,
+    };
+  }
 
   async createPatient(patient: CreatePatientDto): Promise<Patients> {
     const existingPatient = await this.patientsRepo.findOne({
