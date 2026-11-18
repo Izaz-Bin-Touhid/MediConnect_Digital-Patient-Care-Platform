@@ -17,9 +17,10 @@ async function bootstrap() {
     .setVersion('1.0')
     .addBearerAuth()
     .build();
-  SwaggerModule.setup('docs', app, () =>
-    SwaggerModule.createDocument(app, swagger),
-  );
+  const createSwaggerDocument = () =>
+    SwaggerModule.createDocument(app, swagger);
+  SwaggerModule.setup('api/docs', app, createSwaggerDocument);
+  SwaggerModule.setup('docs', app, createSwaggerDocument);
   await app.listen(Number(process.env.PORT ?? 3000));
 }
 await bootstrap();

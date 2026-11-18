@@ -7,7 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { compare, hash } from 'bcryptjs';
-import { DataSource } from 'typeorm';
+import { AuditService } from '../audit/audit.service.js';
 import { UsersService } from '../users/users.service.js';
 import type { AuthActor } from './auth.types.js';
 import { ChangePasswordDto } from './dto/change-password.dto.js';
@@ -17,7 +17,7 @@ import { CoordinatorProfile } from '../coordinator/entities/coordinator-profile.
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly dataSource: DataSource,
+    private readonly auditService: AuditService,
     private readonly usersService: UsersService,
     private readonly config: ConfigService,
     private readonly jwt: JwtService,
@@ -58,7 +58,7 @@ export class AuthService {
     dto: ChangePasswordDto,
   ): Promise<void> {
     const password = await this.hashPassword(dto.newPassword);
-    await this.dataSource.transaction(async (manager) => {
+    await this.auditService.transaction(async (manager) => {
       const profile = await manager
         .getRepository(CoordinatorProfile)
         .createQueryBuilder('profile')
@@ -86,11 +86,13 @@ export class AuthService {
   }
 
   async logout(coordinatorId: string): Promise<void> {
-    await this.dataSource.manager.increment(
-      CoordinatorProfile,
-      { coordinatorId },
-      'tokenVersion',
-      1,
+    await this.auditService.transaction((manager) =>
+      manager.increment(
+        CoordinatorProfile,
+        { coordinatorId },
+        'tokenVersion',
+        1,
+      ),
     );
   }
 

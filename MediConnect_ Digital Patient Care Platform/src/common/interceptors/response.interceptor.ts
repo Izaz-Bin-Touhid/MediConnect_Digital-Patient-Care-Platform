@@ -16,10 +16,31 @@ export class ResponseInterceptor implements NestInterceptor {
     if (request.get('x-response-envelope') !== 'true') {
       return next.handle();
     }
-    return next
-      .handle()
-      .pipe(
-        map((data: unknown) => (response.statusCode === 204 ? data : { data })),
-      );
+    return next.handle().pipe(
+      map((data: unknown) => {
+        if (response.statusCode === 204) return data;
+        if (
+          data &&
+          typeof data === 'object' &&
+          'data' in data &&
+          'meta' in data
+        ) {
+          return {
+            success: true,
+            message: 'Request completed',
+            data: data.data,
+            meta: data.meta,
+          };
+        }
+        const meta = Array.isArray(data)
+          ? {
+              page: Number(request.query.page ?? 1),
+              limit: Number(request.query.limit ?? 20),
+              returnedCount: data.length,
+            }
+          : undefined;
+        return { success: true, message: 'Request completed', data, meta };
+      }),
+    );
   }
 }

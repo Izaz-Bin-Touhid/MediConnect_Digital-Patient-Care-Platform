@@ -15,14 +15,24 @@ export class AuditInterceptor implements NestInterceptor {
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const http = context.switchToHttp();
-    const { actor, method } = http.getRequest<Request & AuthRequest>();
-    if (actor && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
-      const operation = `${context.getClass().name}.${context.getHandler().name}`;
-      const response = http.getResponse<Response>();
-      response.once('finish', () =>
-        this.auditService.record(actor, operation, response.statusCode),
-      );
+    const { actor, ip, method } = http.getRequest<Request & AuthRequest>();
+    if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+      return next.handle();
     }
-    return next.handle();
+    const requestId = http.getResponse<Response>().getHeader('X-Request-Id');
+    if (typeof requestId !== 'string') {
+      return next.handle();
+    }
+    return new Observable((subscriber) =>
+      this.auditService.run(
+        {
+          actorId: actor?.sub,
+          actorRole: actor?.role,
+          ipAddress: ip,
+          requestId,
+        },
+        () => next.handle().subscribe(subscriber),
+      ),
+    );
   }
 }

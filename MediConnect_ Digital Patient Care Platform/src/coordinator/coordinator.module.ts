@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { AuditModule } from '../audit/audit.module.js';
+import { MailModule } from '../mail/mail.module.js';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth/auth.module.js';
 import { TestRequest } from '../doctors/entities/test-request.entity.js';
@@ -20,6 +22,8 @@ import { Reminder } from './entities/reminder.entity.js';
 
 @Module({
   imports: [
+    AuditModule,
+    MailModule,
     AuthModule,
     TypeOrmModule.forFeature([
       CoordinatorProfile,

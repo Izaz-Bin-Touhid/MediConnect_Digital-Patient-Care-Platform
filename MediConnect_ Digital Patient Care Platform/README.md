@@ -56,9 +56,11 @@ npm.cmd run migration:run
 npm.cmd run start:dev
 ```
 
-Swagger UI is available at `/docs`. Use **Authorize** with an access token
-for protected routes. Add `X-Response-Envelope: true` to opt into a
-`{ "data": ... }` response body.
+Swagger UI is available at `/api/docs` and `/docs`. Use **Authorize** with an
+access token for protected routes. Add `X-Response-Envelope: true` for
+`{ "success": true, "message": "...", "data": ... }` with pagination metadata
+on list responses. Normal responses retain their original shape. Response
+headers include `X-Request-Id` and, for handler execution, `Server-Timing`.
 
 If your existing database was created with schema synchronization, first run
 `npm.cmd exec -- typeorm schema:log -d dist/database/data-source.js` against it.
@@ -67,9 +69,18 @@ migration is pending, record that migration with
 `npm.cmd run migration:run -- --fake`. If there are schema differences, use a
 fresh demo database or review an upgrade migration for the existing data.
 
-The audit module logs authenticated write requests. The optional mail module
-accepts a configured JSON delivery endpoint through `MAIL_DELIVERY_URL` and
-`MAIL_FROM`. Coordinator approval does not call it.
+The `AUDIT_LOG` table records inserts, updates and deletes on Coordinator
+workflow tables. Changes and audit rows commit or roll back together.
+Audit snapshots include record identifiers and workflow fields. They omit
+passwords, contact details, free-text notes and medical report contents.
+Application and Admin approval writes can be located by their response
+`X-Request-Id` value.
+
+Configure `SMTP_HOST`, `SMTP_PORT`, `MAIL_FROM` and, if the SMTP server needs
+authentication, `SMTP_USER` and `SMTP_PASSWORD`. Coordinator approval sends
+an approval notice after the account transaction commits. The notice never
+includes the password. A delivery failure is logged, and Admin can still
+give the credentials to the coordinator. Use a sandbox mailbox for demos.
 
 For a local demo, populate `ADMIN`, `DOCTOR`, `PATIENT` and
 `DIAGNOSTIC_CENTER` with test accounts before signing in. Store lowercase

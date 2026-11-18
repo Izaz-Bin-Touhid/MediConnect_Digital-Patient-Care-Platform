@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AuditModule } from '../audit/audit.module.js';
 import { UsersModule } from '../users/users.module.js';
 import { ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
@@ -10,6 +11,7 @@ import { RolesGuard } from '../common/guards/roles.guard.js';
 
 @Module({
   imports: [
+    AuditModule,
     UsersModule,
     JwtModule.registerAsync({
       inject: [ConfigService],

@@ -16,7 +16,7 @@ import {
 } from '@nestjs/common';
 import type { AuthActor } from '../auth/auth.types.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
-import { ApiBearerAuth } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AdminsService } from './admins.service.js';
 import { VerifyDoctorDto } from './dtos/verify-doctor.dto.js';
 import { UpdateAdminDto } from './dtos/update-admin.dto.js';
@@ -31,6 +31,7 @@ import { AssignCaseDto } from '../coordinator/dto/workflow.dto.js';
 @Controller('admins')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('admin')
+@ApiTags('Admins')
 @ApiBearerAuth()
 export class AdminsController {
   constructor(

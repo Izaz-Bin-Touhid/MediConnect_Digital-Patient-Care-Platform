@@ -11,7 +11,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CoordinatorService } from './coordinator.service.js';
 import { ArrangeTestDto } from './dto/arrange-test.dto.js';
 import { RecordDecisionDto } from './dto/record-decision.dto.js';
@@ -43,6 +43,7 @@ import {
 } from './dto/coordinator-application.dto.js';
 
 @Controller('coordinator/applications')
+@ApiTags('Coordinator')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class CoordinatorApplicationController {
@@ -77,6 +78,7 @@ export class CoordinatorApplicationController {
 }
 
 @Controller('coordinator')
+@ApiTags('Coordinator')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('coordinator')

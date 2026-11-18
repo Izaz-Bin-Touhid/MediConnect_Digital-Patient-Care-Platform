@@ -1,5 +1,5 @@
 import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
-import { OmitType } from '@nestjs/mapped-types';
+import { OmitType } from '@nestjs/swagger';
 import { CreateCoordinatorDto } from './create-coordinator.dto.js';
 
 export class CreateCoordinatorApplicationDto {
