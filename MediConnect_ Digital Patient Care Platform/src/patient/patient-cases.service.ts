@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
+import { DoctorAdvice } from '../doctors/entities/doctor-advice.entity.js';
 import { Doctors } from '../doctors/entities/doctors.entity.js';
 import { PatientsService } from './patients.service.js';
 import { PatientCases } from './entities/patient-cases.entity.js';
@@ -20,6 +21,8 @@ export class PatientCasesService {
     private readonly casesRepo: Repository<PatientCases>,
     @InjectRepository(Doctors)
     private readonly doctorsRepo: Repository<Doctors>,
+    @InjectRepository(DoctorAdvice)
+    private readonly adviceRepo: Repository<DoctorAdvice>,
     private readonly patientsService: PatientsService,
   ) {}
 
@@ -100,6 +103,18 @@ export class PatientCasesService {
     }
 
     return patientCase;
+  }
+
+  async getPublishedAdvice(patientId: string, id: string, pagination: PaginationDto) {
+    await this.getMyCaseById(patientId, id);
+    const { page, limit } = pagination;
+    const [data, total] = await this.adviceRepo.findAndCount({
+      where: { case_id: id, status: 'PUBLISHED' },
+      order: { advice_date: 'DESC', advice_id: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   async updatePatientCase(
