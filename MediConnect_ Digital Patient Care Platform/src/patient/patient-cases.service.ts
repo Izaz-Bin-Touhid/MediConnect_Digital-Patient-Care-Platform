@@ -109,7 +109,7 @@ export class PatientCasesService {
     await this.getMyCaseById(patientId, id);
     const { page, limit } = pagination;
     const [data, total] = await this.adviceRepo.findAndCount({
-      where: { case_id: id, status: 'PUBLISHED' },
+      where: { case_id: id, status: 'PUBLISHED', patientCase: { patient: { patientId } } },
       order: { advice_date: 'DESC', advice_id: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
