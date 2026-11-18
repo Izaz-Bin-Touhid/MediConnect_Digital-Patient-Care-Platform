@@ -1,8 +1,6 @@
-import { ConfigService } from '@nestjs/config';
-import { timingSafeEqual } from 'node:crypto';
 import * as bcrypt from 'bcrypt';
 import { CreateAdminDto } from './dtos/create-admin.dto.js';
-import { BadRequestException, ForbiddenException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
 import { Admins } from './entities/admins.entity.js';
@@ -13,7 +11,6 @@ import { UpdateAdminDto } from './dtos/update-admin.dto.js';
 @Injectable()
 export class AdminsService {
   constructor(
-    private readonly config: ConfigService,
     @InjectRepository(Admins)
     private readonly adminRepo: Repository<Admins>,
     @InjectRepository(DoctorProfile)
@@ -89,25 +86,6 @@ export class AdminsService {
 
   async createAdmin(dto: CreateAdminDto) {
     return await this.saveAdmin(dto, this.adminRepo);
-  }
-
-  async setupFirstAdmin(dto: CreateAdminDto, setupKey?: string) {
-    const expected = this.config.get<string>('ADMIN_SETUP_KEY');
-    if (!expected || expected.length < 32 || !setupKey ||
-        Buffer.byteLength(setupKey) !== Buffer.byteLength(expected) ||
-        !timingSafeEqual(Buffer.from(setupKey), Buffer.from(expected))) {
-      throw new ForbiddenException('Invalid Admin setup key');
-    }
-
-    return await this.adminRepo.manager.transaction(async (manager) => {
-      // Serialize first-account creation so two requests cannot both bootstrap.
-      await manager.query('LOCK TABLE "ADMIN" IN EXCLUSIVE MODE');
-      const repository = manager.getRepository(Admins);
-      if (await repository.count()) {
-        throw new ConflictException('Admin setup is complete; log in as Admin to create another account');
-      }
-      return await this.saveAdmin(dto, repository);
-    });
   }
 
   private async saveAdmin(dto: CreateAdminDto, repository: Repository<Admins>) {

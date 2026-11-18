@@ -1,6 +1,6 @@
 import { CreateAdminDto } from './dtos/create-admin.dto.js';
 import {
-  BadRequestException, Body, Controller, DefaultValuePipe, Get, Headers, Post,
+  BadRequestException, Body, Controller, DefaultValuePipe, Get, Post,
   Param, ParseIntPipe, Patch, Query, Req, UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
@@ -63,19 +63,5 @@ export class AdminsController {
     @Body() dto: VerifyDoctorDto,
   ) {
     return await this.adminsService.verifyDoctor(id, req.user.admin_id, dto);
-  }
-}
-
-// This controller has setup-key access, not public Admin registration.
-@Controller('admins/setup')
-export class AdminSetupController {
-  constructor(private readonly adminsService: AdminsService) {}
-
-  @Post()
-  async setupFirstAdmin(
-    @Body() dto: CreateAdminDto,
-    @Headers('x-admin-setup-key') setupKey?: string,
-  ) {
-    return await this.adminsService.setupFirstAdmin(dto, setupKey);
   }
 }
