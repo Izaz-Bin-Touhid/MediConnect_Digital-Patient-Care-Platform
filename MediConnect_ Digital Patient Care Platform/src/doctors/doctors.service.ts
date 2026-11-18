@@ -14,7 +14,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, In, QueryFailedError, Repository } from 'typeorm';
+import { DataSource, In, Not, QueryFailedError, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 
 import { Doctors } from './entities/doctors.entity.js';
@@ -568,12 +568,15 @@ export class DoctorsService {
     if (patientCase.doctorId !== doctorId) {
       throw new ForbiddenException('This patient case is assigned to another doctor');
     }
+    if (patientCase.status === 'draft') {
+      throw new ConflictException('Consultation payment is required for this case');
+    }
     return patientCase;
   }
 
   private async getAssignedCaseIds(doctorId: number) {
     const cases = await this.caseRepo.find({
-      where: { doctorId },
+      where: { doctorId, status: Not('draft') },
       select: { caseId: true },
     });
     return cases.map((patientCase) => patientCase.caseId);
@@ -603,6 +606,9 @@ export class DoctorsService {
       }
       if (patientCase.doctorId !== doctorId) {
         throw new ForbiddenException('This patient case is assigned to another doctor');
+      }
+      if (patientCase.status === 'draft') {
+        throw new ConflictException('Consultation payment is required for this case');
       }
       if (advice.status !== 'DRAFT') {
         throw new ConflictException('Only DRAFT advice can be published');
