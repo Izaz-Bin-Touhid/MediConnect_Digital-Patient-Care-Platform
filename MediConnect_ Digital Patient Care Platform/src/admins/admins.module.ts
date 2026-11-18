@@ -1,3 +1,4 @@
+import { MailModule } from '../mail/mail.module.js';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Admins } from './entities/admins.entity.js';
@@ -8,7 +9,7 @@ import { JwtGuards } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Admins, DoctorProfile])],
+  imports: [MailModule, TypeOrmModule.forFeature([Admins, DoctorProfile])],
   controllers: [AdminsController],
   providers: [AdminsService, JwtGuards, RolesGuard],
   exports: [AdminsService],

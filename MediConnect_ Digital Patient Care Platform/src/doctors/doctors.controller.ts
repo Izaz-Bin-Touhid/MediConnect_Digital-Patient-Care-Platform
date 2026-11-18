@@ -1,3 +1,4 @@
+import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import type { Request } from 'express';
@@ -32,6 +33,7 @@ import { UpdateDoctorProfileDto } from './dtos/update-doctor-profile.dto.js';
 
 type DoctorRequest = Request & { user: Doctors };
 
+@ApiTags('Doctors')
 @Controller('doctors')
 export class DoctorsController {
   constructor(
@@ -44,6 +46,7 @@ export class DoctorsController {
   }
 
   @Get()
+  @ApiBearerAuth()
   @UseGuards(JwtGuards, RolesGuard)
   @Roles('DOCTOR')
   async getAllDoctors(
@@ -66,6 +69,7 @@ export class DoctorsController {
   }
 
   @Get('profiles')
+  @ApiBearerAuth()
   @UseGuards(JwtGuards, RolesGuard)
   @Roles('DOCTOR')
   async getAllDoctorProfiles(
@@ -88,6 +92,7 @@ export class DoctorsController {
   }
 
   @Get('profiles/:id')
+  @ApiBearerAuth()
   @UseGuards(JwtGuards, RolesGuard)
   @Roles('DOCTOR')
   async getDoctorProfileById(
@@ -99,6 +104,7 @@ export class DoctorsController {
   }
 
   @Post('advice')
+  @ApiBearerAuth()
   @UseGuards(JwtGuards, RolesGuard)
   @Roles('DOCTOR')
   async createDoctorAdvice(
@@ -109,6 +115,7 @@ export class DoctorsController {
   }
 
   @Get('advice')
+  @ApiBearerAuth()
   @UseGuards(JwtGuards, RolesGuard)
   @Roles('DOCTOR')
   async getAllDoctorAdvice(
@@ -131,6 +138,7 @@ export class DoctorsController {
   }
 
   @Get('advice/:id')
+  @ApiBearerAuth()
   @UseGuards(JwtGuards, RolesGuard)
   @Roles('DOCTOR')
   async getDoctorAdviceById(
@@ -141,6 +149,7 @@ export class DoctorsController {
   }
 
   @Post('advice/:id/publish')
+  @ApiBearerAuth()
   @UseGuards(JwtGuards, RolesGuard)
   @Roles('DOCTOR')
   async publishDoctorAdvice(
@@ -151,6 +160,7 @@ export class DoctorsController {
   }
 
   @Patch('advice/:id')
+  @ApiBearerAuth()
   @UseGuards(JwtGuards, RolesGuard)
   @Roles('DOCTOR')
   async updateDoctorAdvice(
@@ -166,6 +176,7 @@ export class DoctorsController {
   }
 
   @Delete('advice/:id')
+  @ApiBearerAuth()
   @UseGuards(JwtGuards, RolesGuard)
   @Roles('DOCTOR')
   async deleteDoctorAdvice(
@@ -176,6 +187,7 @@ export class DoctorsController {
   }
 
   @Post('test-requests')
+  @ApiBearerAuth()
   @UseGuards(JwtGuards, RolesGuard)
   @Roles('DOCTOR')
   async createTestRequest(
@@ -186,6 +198,7 @@ export class DoctorsController {
   }
 
   @Get('test-requests')
+  @ApiBearerAuth()
   @UseGuards(JwtGuards, RolesGuard)
   @Roles('DOCTOR')
   async getAllTestRequests(
@@ -208,6 +221,7 @@ export class DoctorsController {
   }
 
   @Get('test-requests/:id')
+  @ApiBearerAuth()
   @UseGuards(JwtGuards, RolesGuard)
   @Roles('DOCTOR')
   async getTestRequestById(
@@ -218,6 +232,7 @@ export class DoctorsController {
   }
 
   @Patch('test-requests/:id')
+  @ApiBearerAuth()
   @UseGuards(JwtGuards, RolesGuard)
   @Roles('DOCTOR')
   async updateTestRequest(
@@ -233,6 +248,7 @@ export class DoctorsController {
   }
 
   @Delete('test-requests/:id')
+  @ApiBearerAuth()
   @UseGuards(JwtGuards, RolesGuard)
   @Roles('DOCTOR')
   async deleteTestRequest(
@@ -255,6 +271,7 @@ export class DoctorsController {
   }
 
   @Get(':id')
+  @ApiBearerAuth()
   @UseGuards(JwtGuards, RolesGuard)
   @Roles('DOCTOR')
   async getDoctorById(
@@ -266,6 +283,7 @@ export class DoctorsController {
   }
 
   @Patch('profiles/:id')
+  @ApiBearerAuth()
   @UseGuards(JwtGuards, RolesGuard)
   @Roles('DOCTOR')
   async updateDoctorProfile(
@@ -284,6 +302,7 @@ export class DoctorsController {
   }
 
   @Patch(':id')
+  @ApiBearerAuth()
   @UseGuards(JwtGuards, RolesGuard)
   @Roles('DOCTOR')
   async updateDoctor(
@@ -302,6 +321,7 @@ export class DoctorsController {
   }
 
   @Delete('profiles/:id')
+  @ApiBearerAuth()
   @UseGuards(JwtGuards, RolesGuard)
   @Roles('DOCTOR')
   async deleteDoctorProfile(
@@ -313,6 +333,7 @@ export class DoctorsController {
   }
 
   @Delete(':id')
+  @ApiBearerAuth()
   @UseGuards(JwtGuards, RolesGuard)
   @Roles('DOCTOR')
   async deleteDoctor(
@@ -324,6 +345,7 @@ export class DoctorsController {
   }
 
   @Post('profiles')
+  @ApiBearerAuth()
   @UseGuards(JwtGuards, RolesGuard)
   @Roles('DOCTOR')
   async createDoctorProfile(
@@ -334,6 +356,7 @@ export class DoctorsController {
   }
 
   @Post('profiles/:id/submit')
+  @ApiBearerAuth()
   @UseGuards(JwtGuards, RolesGuard)
   @Roles('DOCTOR')
   async submitDoctorProfile(

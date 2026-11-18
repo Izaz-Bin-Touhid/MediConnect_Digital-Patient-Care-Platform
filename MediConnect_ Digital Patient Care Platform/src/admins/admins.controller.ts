@@ -1,3 +1,4 @@
+import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
 import { ChangeAdminPasswordDto } from './dtos/change-admin-password.dto.js';
 import { CreateAdminDto } from './dtos/create-admin.dto.js';
 import {
@@ -15,9 +16,11 @@ import { RolesGuard } from '../common/guards/roles.guard.js';
 
 type AdminRequest = Request & { user: Admins & { role: 'ADMIN' } };
 
+@ApiTags('Admins')
 @Controller('admins')
 @UseGuards(JwtGuards, RolesGuard)
 @Roles('ADMIN')
+@ApiBearerAuth()
 export class AdminsController {
   constructor(private readonly adminsService: AdminsService) {}
 
