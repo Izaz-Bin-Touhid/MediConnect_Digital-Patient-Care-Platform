@@ -7,11 +7,11 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
 import { Doctors } from '../doctors/entities/doctors.entity.js';
-import { PatientsService } from '../patients/patients.service.js';
+import { PatientsService } from './patients.service.js';
 import { PatientCases } from './entities/patient-cases.entity.js';
 import { CreatePatientCaseDto } from './dtos/create-patient-case.dto.js';
 import { UpdatePatientCaseDto } from './dtos/update-patient-case.dto.js';
-import { PaginationDto } from '../patients/dtos/pagination.dto.js';
+import { PaginationDto } from '../common/dtos/pagination.dto.js';
 
 @Injectable()
 export class PatientCasesService {

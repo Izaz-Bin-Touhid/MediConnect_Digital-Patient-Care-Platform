@@ -5,7 +5,7 @@ import {
   ManyToOne,
   PrimaryColumn,
 } from 'typeorm';
-import type { PatientCases } from '../../patient-cases/entities/patient-cases.entity.js';
+import type { PatientCases } from './patient-cases.entity.js';
 
 @Entity('PAYMENT')
 export class Payments {

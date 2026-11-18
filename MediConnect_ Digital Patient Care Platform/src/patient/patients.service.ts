@@ -7,18 +7,14 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
 import { Patients } from './entities/patients.entity.js';
-import { DiagnosticCenters } from '../diagnostic-centers/entities/diagnostic-centers.entity.js';
 import { CreatePatientDto } from './dtos/create-patient.dto.js';
 import { UpdatePatientDto } from './dtos/update-patient.dto.js';
-import { PaginationDto } from './dtos/pagination.dto.js';
 
 @Injectable()
 export class PatientsService {
   constructor(
     @InjectRepository(Patients)
     private readonly patientsRepo: Repository<Patients>,
-    @InjectRepository(DiagnosticCenters)
-    private readonly centersRepo: Repository<DiagnosticCenters>,
   ) {}
 
   async createPatient(patient: CreatePatientDto): Promise<Patients> {
@@ -56,18 +52,6 @@ export class PatientsService {
     }
   }
 
-  async getAllPatients(): Promise<Patients[]> {
-    return await this.patientsRepo.find({
-      select: {
-        patientId: true,
-        fullName: true,
-        email: true,
-        phone: true,
-        role: true,
-      },
-    });
-  }
-
   async getPatientById(id: string): Promise<Patients | null> {
     return await this.patientsRepo.findOne({
       where: { patientId: id },
@@ -80,23 +64,6 @@ export class PatientsService {
         role: true,
       },
     });
-  }
-
-  async getDiagnosticCenters(pagination: PaginationDto) {
-    const { page, limit } = pagination;
-    const [data, total] = await this.centersRepo.findAndCount({
-      select: {
-        centerId: true,
-        centerName: true,
-        email: true,
-        phone: true,
-        location: true,
-      },
-      order: { centerName: 'ASC', centerId: 'ASC' },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
-    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   async updatePatient(

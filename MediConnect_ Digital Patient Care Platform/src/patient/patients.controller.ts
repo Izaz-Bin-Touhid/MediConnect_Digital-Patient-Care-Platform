@@ -7,35 +7,24 @@ import {
   Get,
   Param,
   Patch,
-  Query,
   Req,
   UseGuards,
+  SetMetadata,
 } from '@nestjs/common';
-import { PaginationDto } from './dtos/pagination.dto.js';
 import { PatientsService } from './patients.service.js';
 import { UpdatePatientDto } from './dtos/update-patient.dto.js';
-import { JwtGuards } from '../auth/jwtGuards.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { JwtGuards } from '../common/guards/jwtGuards.js';
 
 @Controller('patients')
 export class PatientsController {
   constructor(private readonly patientsService: PatientsService) {}
 
-  @UseGuards(JwtGuards)
-  @Get('diagnostic-centers')
-  async getDiagnosticCenters(
-    @Req() req: any,
-    @Query() pagination: PaginationDto,
-  ) {
-    if (req.user.role !== 'patient') {
-      throw new ForbiddenException('Only patients can use this route');
-    }
-    return await this.patientsService.getDiagnosticCenters(pagination);
-  }
-
-  @UseGuards(JwtGuards)
+  @UseGuards(JwtGuards, RolesGuard)
+  @SetMetadata('roles', ['patient'])
   @Get(':id')
   async getPatientById(@Param('id') id: string, @Req() req: any) {
-    if (req.user.role !== 'patient' || req.user.id !== id) {
+    if (req.user.id !== id) {
       throw new ForbiddenException('You can only access your own profile');
     }
 
@@ -54,14 +43,15 @@ export class PatientsController {
     };
   }
 
-  @UseGuards(JwtGuards)
+  @UseGuards(JwtGuards, RolesGuard)
+  @SetMetadata('roles', ['patient'])
   @Patch('updatePatientPartially/:id')
   async updatePatientPartially(
     @Param('id') id: string,
     @Body() patient: UpdatePatientDto,
     @Req() req: any,
   ) {
-    if (req.user.role !== 'patient' || req.user.id !== id) {
+    if (req.user.id !== id) {
       throw new ForbiddenException('You can only update your own profile');
     }
 
@@ -79,10 +69,11 @@ export class PatientsController {
     };
   }
 
-  @UseGuards(JwtGuards)
+  @UseGuards(JwtGuards, RolesGuard)
+  @SetMetadata('roles', ['patient'])
   @Delete(':id')
   async deletePatientById(@Param('id') id: string, @Req() req: any) {
-    if (req.user.role !== 'patient' || req.user.id !== id) {
+    if (req.user.id !== id) {
       throw new ForbiddenException('You can only delete your own profile');
     }
 

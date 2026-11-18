@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
-import { PatientsModule } from '../patients/patients.module.js';
+import { PatientsModule } from '../patient/patients.module.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
-import { JwtGuards } from './jwtGuards.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { JwtGuards } from '../common/guards/jwtGuards.js';
 import { JwtStrategy } from './jwtStrategy.strategy.js';
 
 @Module({
@@ -17,6 +18,6 @@ import { JwtStrategy } from './jwtStrategy.strategy.js';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtGuards, JwtStrategy],
+  providers: [AuthService, JwtGuards, JwtStrategy, RolesGuard],
 })
 export class AuthModule {}

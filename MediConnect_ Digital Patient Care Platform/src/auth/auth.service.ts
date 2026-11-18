@@ -6,8 +6,8 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { PatientsService } from '../patients/patients.service.js';
-import { Patients } from '../patients/entities/patients.entity.js';
+import { PatientsService } from '../patient/patients.service.js';
+import { Patients } from '../patient/entities/patients.entity.js';
 import { RegistrationDto } from './dtos/registration.dto.js';
 import { LoginDto } from './dtos/login.dto.js';
 import { ChangePasswordDto } from './dtos/change-password.dto.js';

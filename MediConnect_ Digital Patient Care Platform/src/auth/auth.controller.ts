@@ -1,18 +1,19 @@
 import {
   Body,
   Controller,
-  ForbiddenException,
   HttpCode,
   Patch,
   Post,
   Req,
   UseGuards,
+  SetMetadata,
 } from '@nestjs/common';
+import { RolesGuard } from '../common/guards/roles.guard.js';
 import { AuthService } from './auth.service.js';
 import { RegistrationDto } from './dtos/registration.dto.js';
 import { LoginDto } from './dtos/login.dto.js';
 import { ChangePasswordDto } from './dtos/change-password.dto.js';
-import { JwtGuards } from './jwtGuards.js';
+import { JwtGuards } from '../common/guards/jwtGuards.js';
 
 @Controller('auth')
 export class AuthController {
@@ -37,13 +38,10 @@ export class AuthController {
     return await this.authService.login(loginDto);
   }
 
-  @UseGuards(JwtGuards)
+  @UseGuards(JwtGuards, RolesGuard)
+  @SetMetadata('roles', ['patient'])
   @Patch('change-password')
   async changePassword(@Req() req: any, @Body() passwords: ChangePasswordDto) {
-    if (req.user.role !== 'patient') {
-      throw new ForbiddenException('Only patients can use this route');
-    }
-
     return await this.authService.changePassword(req.user.id, passwords);
   }
 }
